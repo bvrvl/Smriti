@@ -3,7 +3,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 # Location of the SQLite database file
-SQLALCHEMY_DATABASE_URL = "sqlite:///./journal.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:////tmp/journal.db" #Making db temporary
+
 
 # Create the SQLAlchemy engine
 engine = create_engine(
