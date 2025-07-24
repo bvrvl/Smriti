@@ -34,3 +34,4 @@ yarn-error.log*
 #Common User Data dir names
 /journal_entries/
 /data/
+/backend/journal.db
