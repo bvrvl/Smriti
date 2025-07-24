@@ -1,4 +1,3 @@
-// UPGRADED version of /frontend/src/ConnectionEngine.tsx
 import { useState, useEffect } from 'react';
 import Select from 'react-select';
 import { VennDiagram } from 'reaviz';
