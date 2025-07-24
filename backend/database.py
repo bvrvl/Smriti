@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, Column, Integer, String, Text, Date
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 # Location of the SQLite database file
 SQLALCHEMY_DATABASE_URL = "sqlite:///./journal.db"
@@ -14,9 +14,10 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base class for the database models
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
-# Define JournalEntry model (table in the database)
+# Define JournalEntry model (the table in the database)
 class JournalEntry(Base):
     __tablename__ = "entries"
 

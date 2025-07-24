@@ -1,20 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import './App.css';
 
 function App() {
-  const [message, setMessage] = useState('Loading...');
+  const [importMessage, setImportMessage] = useState('');
 
-  useEffect(() => {
-    fetch('http://localhost:8000/')
+  const handleImport = () => {
+    setImportMessage('Importing...');
+    fetch('http://localhost:8000/api/import', { method: 'POST' })
       .then(response => response.json())
-      .then(data => setMessage(data.message))
-      .catch(error => setMessage(`Error: ${error.message}`));
-  }, []);
+      .then(data => setImportMessage(data.message))
+      .catch(error => setImportMessage(`Error: ${error.message}`));
+  };
 
   return (
     <div className="App">
-      <h1>Smriti</h1>
-      <p>Message from backend: <strong>{message}</strong></p>
+      <header className="App-header">
+        <h1>Journal Insights</h1>
+      </header>
+      <div className="card">
+        <h2>Actions</h2>
+        <button onClick={handleImport}>Import Journal Entries</button>
+        {importMessage && <p><i>{importMessage}</i></p>}
+      </div>
+      {/* Will add Journal Viewer here later */}
     </div>
   );
 }
