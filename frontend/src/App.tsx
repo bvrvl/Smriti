@@ -4,6 +4,7 @@ import { SentimentChart } from './SentimentChart';
 import { NerDisplay } from './NerDisplay';
 import { HeatmapDisplay } from './HeatmapDisplay';
 import { ConnectionEngine } from './ConnectionEngine';
+import { CommonConnections } from './CommonConnections';
 
 // --- Interfaces for our data shapes ---
 interface JournalEntry { id: number; entry_date: string; content: string; }
@@ -82,6 +83,10 @@ function App() {
       <div className="card">
         <h2>Connection Engine</h2>
           <ConnectionEngine nerData={nerData} />
+      </div>
+      <div className="card">
+        <h2>Common Connection Discovery</h2>
+          <CommonConnections nerData={nerData} />
       </div>
 
       <div className="card">
