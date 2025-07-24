@@ -66,3 +66,9 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.heatmap-container .react-calendar-heatmap .color-scale-0 { fill: #d32f2f; }
+.heatmap-container .react-calendar-heatmap .color-scale-1 { fill: #ef5350; }
+.heatmap-container .react-calendar-heatmap .color-scale-2 { fill: #81c784; }
+.heatmap-container .react-calendar-heatmap .color-scale-3 { fill: #4caf50; }
+.heatmap-container .react-calendar-heatmap .color-scale-4 { fill: #2e7d32; }

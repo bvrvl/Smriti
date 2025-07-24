@@ -18,13 +18,16 @@ from gensim.corpora import Dictionary
 from gensim.models.ldamodel import LdaModel
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+import spacy
+from collections import Counter
 
 # --- Local Application Imports ---
 import database
 
 # Tell NLTK where our pre-downloaded data is.
 nltk.data.path.append("/root/nltk_data")
-
+#load spaCy model for Named Entity Recognition
+nlp = spacy.load("en_core_web_sm")
 # =============================================================================
 # INITIAL SETUP
 # =============================================================================
@@ -73,6 +76,15 @@ class SentimentDataPoint(BaseModel):
 class Topic(BaseModel):
     topic_id: int
     keywords: List[str]
+
+class EntityCount(BaseModel):
+    text: str
+    count: int
+
+class NerResult(BaseModel):
+    people: List[EntityCount]
+    places: List[EntityCount]
+    orgs: List[EntityCount]
 
 # =============================================================================
 # API ENDPOINTS
@@ -146,3 +158,30 @@ def get_topic_analysis(db: Session = Depends(get_db)):
         keywords = [word.split('*')[1].replace('"', '').strip() for word in topic_str.split(' + ')]
         topics.append({"topic_id": idx, "keywords": keywords})
     return topics
+
+
+@app.get("/api/analysis/ner", response_model=NerResult)
+def get_ner_analysis(db: Session = Depends(get_db)):
+    entries = db.query(database.JournalEntry).all()
+    
+    full_text = " ".join([entry.content for entry in entries])
+    
+    # Process the text with spaCy
+    doc = nlp(full_text)
+    
+    # Extract and categorize entities
+    people = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
+    places = [ent.text for ent in doc.ents if ent.label_ in ["GPE", "LOC"]]
+    orgs = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
+    
+    # Count the occurrences of each unique entity
+    people_counts = Counter(people)
+    places_counts = Counter(places)
+    orgs_counts = Counter(orgs)
+    
+    # Format the data for the API response, taking the top 15 of each
+    top_people = [{"text": text, "count": count} for text, count in people_counts.most_common(15)]
+    top_places = [{"text": text, "count": count} for text, count in places_counts.most_common(15)]
+    top_orgs = [{"text": text, "count": count} for text, count in orgs_counts.most_common(15)]
+    
+    return {"people": top_people, "places": top_places, "orgs": top_orgs}

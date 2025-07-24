@@ -1,58 +1,39 @@
 import { useState, useEffect } from 'react';
 import './App.css';
-import { SentimentChart } from './SentimentChart'; // Make sure this import is here
+import { SentimentChart } from './SentimentChart';
+import { NerDisplay } from './NerDisplay';
+import { HeatmapDisplay } from './HeatmapDisplay';
 
-
-interface JournalEntry {
-  id: number;
-  entry_date: string;
-  content: string;
-}
-
-interface SentimentDataPoint {
-  date: string;
-  score: number;
-}
-
-interface Topic {
-  topic_id: number;
-  keywords: string[];
+// --- Interfaces for our data shapes ---
+interface JournalEntry { id: number; entry_date: string; content: string; }
+interface SentimentDataPoint { date: string; score: number; }
+interface Topic { topic_id: number; keywords: string[]; }
+interface EntityCount { text: string; count: number; }
+interface NerData {
+  people: EntityCount[];
+  places: EntityCount[];
+  orgs: EntityCount[];
 }
 
 function App() {
+  // --- State variables ---
   const [importMessage, setImportMessage] = useState('');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [sentimentData, setSentimentData] = useState<SentimentDataPoint[]>([]);
   const [topicData, setTopicData] = useState<Topic[]>([]);
+  const [nerData, setNerData] = useState<NerData | null>(null);
 
-  // Function to fetch all entries from the backend
-  const fetchEntries = () => {
-    fetch('http://localhost:8000/api/entries')
-      .then(response => response.json())
-      .then(data => setEntries(data))
-      .catch(console.error);
+  // --- Data fetching functions ---
+  const fetchAllData = () => {
+    fetch('http://localhost:8000/api/entries').then(res => res.json()).then(setEntries).catch(console.error);
+    fetch('http://localhost:8000/api/analysis/sentiment').then(res => res.json()).then(setSentimentData).catch(console.error);
+    fetch('http://localhost:8000/api/analysis/topics').then(res => res.json()).then(setTopicData).catch(console.error);
+    fetch('http://localhost:8000/api/analysis/ner').then(res => res.json()).then(setNerData).catch(console.error);
+    
   };
 
-  // Function to fetch sentiment analysis data
-  const fetchSentimentData = () => {
-    fetch('http://localhost:8000/api/analysis/sentiment')
-      .then(response => response.json())
-      .then(data => setSentimentData(data))
-      .catch(console.error);
-  };
-
-  const fetchTopicData = () => {
-    fetch('http://localhost:8000/api/analysis/topics')
-      .then(response => response.json())
-      .then(data => setTopicData(data))
-      .catch(console.error);
-  };
-
-  // Use useEffect to fetch data when the component first loads
   useEffect(() => {
-    fetchEntries();
-    fetchSentimentData();
-    fetchTopicData();
+    fetchAllData();
   }, []);
 
   const handleImport = () => {
@@ -61,14 +42,12 @@ function App() {
       .then(response => response.json())
       .then(data => {
         setImportMessage(data.message);
-        // After importing, refresh all data
-        fetchEntries();
-        fetchSentimentData();
-        fetchTopicData();
+        fetchAllData(); // After importing, refresh all data
       })
       .catch(error => setImportMessage(`Error: ${error.message}`));
   };
 
+  // --- Render component ---
   return (
     <div className="App">
       <header className="App-header">
@@ -81,35 +60,28 @@ function App() {
       </div>
 
       <div className="card">
+        <h2>Sentiment Heatmap</h2>
+        <HeatmapDisplay sentimentData={sentimentData} />
+      </div>
+
+      <NerDisplay nerData={nerData} />
+
+      <div className="card">
         <h2>Sentiment Over Time</h2>
         <SentimentChart data={sentimentData} />
       </div>
 
       <div className="card">
-        <h2>Entries</h2>
-        <div className="entry-list">
-          {entries.map(entry => (
-            <div key={entry.id} className="entry-item">
-              <h3>{entry.entry_date}</h3>
-              <p>{entry.content.substring(0, 200)}...</p>
-            </div>
-          ))}
-        </div>
+        <h2>Discovered Topics</h2>
+        {topicData.length > 0 ? (
+          <ul> {topicData.map(topic => ( <li key={topic.topic_id}> <strong>Topic {topic.topic_id + 1}:</strong> {topic.keywords.join(', ')} </li> ))} </ul>
+        ) : ( <p><i>Not enough entries to analyze topics. (Need at least 5)</i></p> )}
       </div>
+
       <div className="card">
-  <h2>Discovered Topics</h2>
-  {topicData.length > 0 ? (
-    <ul>
-      {topicData.map(topic => (
-        <li key={topic.topic_id}>
-          <strong>Topic {topic.topic_id + 1}:</strong> {topic.keywords.join(', ')}
-        </li>
-      ))}
-    </ul>
-  ) : (
-    <p><i>Not enough entries to analyze topics. (Need at least 5)</i></p>
-  )}
-</div>
+        <h2>Entries</h2>
+        <div className="entry-list"> {entries.map(entry => ( <div key={entry.id} className="entry-item"> <h3>{entry.entry_date}</h3> <p>{entry.content.substring(0, 200)}...</p> </div> ))} </div>
+      </div>
     </div>
   );
 }
