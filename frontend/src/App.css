@@ -40,3 +40,13 @@
 .read-the-docs {
   color: #888;
 }
+
+.ner-container {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  text-align: left;
+}
+.ner-container .card {
+  flex: 1;
+}
