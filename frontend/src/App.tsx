@@ -3,6 +3,7 @@ import './App.css';
 import { SentimentChart } from './SentimentChart';
 import { NerDisplay } from './NerDisplay';
 import { HeatmapDisplay } from './HeatmapDisplay';
+import { ConnectionEngine } from './ConnectionEngine';
 
 // --- Interfaces for our data shapes ---
 interface JournalEntry { id: number; entry_date: string; content: string; }
@@ -76,6 +77,11 @@ function App() {
         {topicData.length > 0 ? (
           <ul> {topicData.map(topic => ( <li key={topic.topic_id}> <strong>Topic {topic.topic_id + 1}:</strong> {topic.keywords.join(', ')} </li> ))} </ul>
         ) : ( <p><i>Not enough entries to analyze topics. (Need at least 5)</i></p> )}
+      </div>
+
+      <div className="card">
+        <h2>Connection Engine</h2>
+          <ConnectionEngine nerData={nerData} />
       </div>
 
       <div className="card">
