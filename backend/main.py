@@ -95,6 +95,13 @@ class CoOccurrenceRequest(BaseModel):
 class VennSet(BaseModel):
     key: List[str]
     data: int
+
+class CommonConnectionResult(BaseModel):
+    entity1: str
+    entity2: str
+    common_entities: List[EntityCount]
+
+
 # =============================================================================
 # API ENDPOINTS
 # =============================================================================
@@ -227,3 +234,36 @@ def post_co_occurrence(request: CoOccurrenceRequest, db: Session = Depends(get_d
                 results.append({"key": combo_list, "data": count})
 
     return results
+
+@app.get("/api/analysis/common-connections", response_model=CommonConnectionResult)
+def get_common_connections(entity1: str, entity2: str, db: Session = Depends(get_db)):
+    if not entity1 or not entity2 or entity1 == entity2:
+        return {"entity1": entity1, "entity2": entity2, "common_entities": []}
+
+    # Find all entries containing both entity1 and entity2
+    query = db.query(database.JournalEntry.content).filter(
+        and_(
+            database.JournalEntry.content.like(f"%{entity1}%"),
+            database.JournalEntry.content.like(f"%{entity2}%")
+        )
+    ).all()
+    
+    intersection_text = " ".join([entry.content for entry in query])
+    
+    if not intersection_text:
+        return {"entity1": entity1, "entity2": entity2, "common_entities": []}
+
+    # Now run NER on just this subset of text
+    doc = nlp(intersection_text)
+    
+    # Extract all entities, EXCLUDING the two we searched for
+    other_entities = [
+        ent.text for ent in doc.ents 
+        if ent.text.lower() not in [entity1.lower(), entity2.lower()]
+    ]
+    
+    # Count and return the top 10 most common
+    common_counts = Counter(other_entities)
+    top_common = [{"text": text, "count": count} for text, count in common_counts.most_common(10)]
+    
+    return {"entity1": entity1, "entity2": entity2, "common_entities": top_common}
