@@ -1,68 +1,61 @@
+// UPGRADED version of /frontend/src/ConnectionEngine.tsx
 import { useState, useEffect } from 'react';
+import Select from 'react-select';
 import { VennDiagram } from 'reaviz';
 
-// --- Interfaces for our data shapes ---
 interface EntityCount { text: string; count: number; }
 interface NerData {
   people: EntityCount[];
   places: EntityCount[];
   orgs: EntityCount[];
 }
-interface CoOccurrenceData {
-    set1_exclusive: number;
-    set2_exclusive: number;
-    intersection: number;
-}
+interface VennSet { key: string[]; data: number; }
 
 interface ConnectionEngineProps {
   nerData: NerData | null;
 }
 
 export const ConnectionEngine = ({ nerData }: ConnectionEngineProps) => {
-  // Get a unique list of all entities from the NER data
   const allEntities = nerData ? [...nerData.people, ...nerData.places, ...nerData.orgs].map(e => e.text) : [];
   const uniqueEntities = Array.from(new Set(allEntities)).sort();
+  
+  // react-select expects options in { value: string, label: string } format
+  const selectOptions = uniqueEntities.map(e => ({ value: e, label: e }));
 
-  // --- State management ---
-  const [entity1, setEntity1] = useState<string>('');
-  const [entity2, setEntity2] = useState<string>('');
-  const [vennData, setVennData] = useState<any[] | null>(null);
+  const [selectedEntities, setSelectedEntities] = useState<{ value: string; label: string; }[]>([]);
+  const [vennData, setVennData] = useState<VennSet[] | null>(null);
 
-  // --- Effect to fetch data when selections change ---
   useEffect(() => {
-    if (entity1 && entity2 && entity1 !== entity2) {
-      fetch(`http://localhost:8000/api/analysis/co-occurrence?entity1=${entity1}&entity2=${entity2}`)
+    const entityValues = selectedEntities.map(e => e.value);
+    
+    if (entityValues.length >= 2) {
+      fetch('http://localhost:8000/api/analysis/co-occurrence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entities: entityValues }),
+      })
         .then(res => res.json())
-        .then((data: CoOccurrenceData) => {
-          // The 'reaviz' library wants the size of the *entire* circle, not just the exclusive part.
-          // So, we have to add the intersection back to each exclusive set.
-          const formattedData = [
-            { key: [entity1], data: data.set1_exclusive + data.intersection },
-            { key: [entity2], data: data.set2_exclusive + data.intersection },
-            { key: [entity1, entity2], data: data.intersection },
-          ];
-          setVennData(formattedData);
-        })
+        .then(data => setVennData(data))
         .catch(console.error);
     } else {
-        setVennData(null); // Clear diagram if selections are invalid
+        setVennData(null);
     }
-  }, [entity1, entity2]);
+  }, [selectedEntities]);
 
   return (
     <div className="connection-engine">
       <div className="selectors">
-        <select value={entity1} onChange={e => setEntity1(e.target.value)}>
-          <option value="">Select first entity...</option>
-          {uniqueEntities.map(e => <option key={e} value={e}>{e}</option>)}
-        </select>
-        <select value={entity2} onChange={e => setEntity2(e.target.value)}>
-          <option value="">Select second entity...</option>
-          {uniqueEntities.map(e => <option key={e} value={e}>{e}</option>)}
-        </select>
+        <Select
+          isMulti
+          options={selectOptions}
+          value={selectedEntities}
+          onChange={(options) => setSelectedEntities(options as any)}
+          placeholder="Select 2 to 4 entities..."
+          isOptionDisabled={() => selectedEntities.length >= 4}
+        />
       </div>
       <div className="venn-diagram-container">
-        {vennData && (
+        {vennData && vennData.length > 0 && (
           <VennDiagram
             height={300}
             width={500}
