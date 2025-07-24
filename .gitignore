@@ -35,3 +35,6 @@ yarn-error.log*
 /journal_entries/
 /data/
 /backend/journal.db
+
+# Ignore local NLP model data
+/backend/nltk_data/
