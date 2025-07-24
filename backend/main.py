@@ -9,6 +9,7 @@ import re
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from pydantic import Field
 from sqlalchemy.orm import Session
 
 # --- NLP Library Imports ---
@@ -85,6 +86,11 @@ class NerResult(BaseModel):
     people: List[EntityCount]
     places: List[EntityCount]
     orgs: List[EntityCount]
+
+class CoOccurrenceResult(BaseModel):
+    set1_exclusive: int
+    set2_exclusive: int
+    intersection: int
 
 # =============================================================================
 # API ENDPOINTS
@@ -185,3 +191,43 @@ def get_ner_analysis(db: Session = Depends(get_db)):
     top_orgs = [{"text": text, "count": count} for text, count in orgs_counts.most_common(15)]
     
     return {"people": top_people, "places": top_places, "orgs": top_orgs}
+
+from sqlalchemy import and_, not_
+
+@app.get("/api/analysis/co-occurrence", response_model=CoOccurrenceResult)
+def get_co_occurrence(entity1: str, entity2: str, db: Session = Depends(get_db)):
+    """
+    Calculates the co-occurrence of two entities in the journal entries.
+    """
+    if not entity1 or not entity2 or entity1 == entity2:
+        return {"set1_exclusive": 0, "set2_exclusive": 0, "intersection": 0}
+
+    # Query for entries containing BOTH entities
+    intersection_count = db.query(database.JournalEntry).filter(
+        and_(
+            database.JournalEntry.content.like(f"%{entity1}%"),
+            database.JournalEntry.content.like(f"%{entity2}%")
+        )
+    ).count()
+
+    # Query for entries containing entity1 BUT NOT entity2
+    set1_exclusive_count = db.query(database.JournalEntry).filter(
+        and_(
+            database.JournalEntry.content.like(f"%{entity1}%"),
+            not_(database.JournalEntry.content.like(f"%{entity2}%"))
+        )
+    ).count()
+
+    # Query for entries containing entity2 BUT NOT entity1
+    set2_exclusive_count = db.query(database.JournalEntry).filter(
+        and_(
+            database.JournalEntry.content.like(f"%{entity2}%"),
+            not_(database.JournalEntry.content.like(f"%{entity1}%"))
+        )
+    ).count()
+
+    return {
+        "set1_exclusive": set1_exclusive_count,
+        "set2_exclusive": set2_exclusive_count,
+        "intersection": intersection_count
+    }
