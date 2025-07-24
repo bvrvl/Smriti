@@ -1,0 +1,36 @@
+#OS generated
+.DS_Store
+Thumbs.db
+
+#environment variables
+.env
+.env.*
+
+#Editor specific
+.vscode/
+
+#locattion of venv folder
+/backend/venv/
+
+#Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+#Package installation metadata
+*.egg-info/
+
+#Dependencies
+/frontend/node_modules/
+
+#Build output and other temp folders
+/frontend/dist/
+/frontend/.vite/
+
+#Crash Logs
+npm-debug.log*
+yarn-error.log*
+
+#Common User Data dir names
+/journal_entries/
+/data/
