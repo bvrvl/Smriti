@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pydantic import Field
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 # --- NLP Library Imports ---
 import nltk
@@ -87,11 +88,13 @@ class NerResult(BaseModel):
     places: List[EntityCount]
     orgs: List[EntityCount]
 
-class CoOccurrenceResult(BaseModel):
-    set1_exclusive: int
-    set2_exclusive: int
-    intersection: int
+class CoOccurrenceRequest(BaseModel):
+    # We'll allow between 2 and 4 entities for a clean Venn diagram
+    entities: List[str] = Field(..., min_length=2, max_length=4)
 
+class VennSet(BaseModel):
+    key: List[str]
+    data: int
 # =============================================================================
 # API ENDPOINTS
 # =============================================================================
@@ -194,40 +197,33 @@ def get_ner_analysis(db: Session = Depends(get_db)):
 
 from sqlalchemy import and_, not_
 
-@app.get("/api/analysis/co-occurrence", response_model=CoOccurrenceResult)
-def get_co_occurrence(entity1: str, entity2: str, db: Session = Depends(get_db)):
+@app.post("/api/analysis/co-occurrence", response_model=List[VennSet])
+def post_co_occurrence(request: CoOccurrenceRequest, db: Session = Depends(get_db)):
     """
-    Calculates the co-occurrence of two entities in the journal entries.
+    Calculates the co-occurrence for a list of 2 to 4 entities.
     """
-    if not entity1 or not entity2 or entity1 == entity2:
-        return {"set1_exclusive": 0, "set2_exclusive": 0, "intersection": 0}
+    from itertools import combinations
 
-    # Query for entries containing BOTH entities
-    intersection_count = db.query(database.JournalEntry).filter(
-        and_(
-            database.JournalEntry.content.like(f"%{entity1}%"),
-            database.JournalEntry.content.like(f"%{entity2}%")
-        )
-    ).count()
+    entity_list = list(set(request.entities)) # Ensure unique entities
+    
+    # Get all entries that contain at least one of the entities for efficiency
+    base_query = db.query(database.JournalEntry.content).filter(
+        or_(*[database.JournalEntry.content.like(f"%{entity}%") for entity in entity_list])
+    ).all()
+    
+    # The list of all relevant journal entries as strings
+    relevant_entries = [entry.content for entry in base_query]
 
-    # Query for entries containing entity1 BUT NOT entity2
-    set1_exclusive_count = db.query(database.JournalEntry).filter(
-        and_(
-            database.JournalEntry.content.like(f"%{entity1}%"),
-            not_(database.JournalEntry.content.like(f"%{entity2}%"))
-        )
-    ).count()
+    results = []
+    # We need to calculate the size of every possible intersection (singles, pairs, triples, etc.)
+    for i in range(1, len(entity_list) + 1):
+        for combo in combinations(entity_list, i):
+            combo_list = list(combo)
+            
+            # Count how many entries contain ALL entities in the current combination
+            count = sum(1 for entry in relevant_entries if all(entity in entry for entity in combo_list))
+            
+            if count > 0:
+                results.append({"key": combo_list, "data": count})
 
-    # Query for entries containing entity2 BUT NOT entity1
-    set2_exclusive_count = db.query(database.JournalEntry).filter(
-        and_(
-            database.JournalEntry.content.like(f"%{entity2}%"),
-            not_(database.JournalEntry.content.like(f"%{entity1}%"))
-        )
-    ).count()
-
-    return {
-        "set1_exclusive": set1_exclusive_count,
-        "set2_exclusive": set2_exclusive_count,
-        "intersection": intersection_count
-    }
+    return results
