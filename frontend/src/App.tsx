@@ -59,7 +59,6 @@ function App() {
     const filtered = entries.filter(entry => entry.content.includes(entityText));
     setFilteredEntries(filtered);
   };
-  // Add this function inside the App component in App.tsx
 
   const resetFilter = () => {
     setFilteredEntries(entries);
