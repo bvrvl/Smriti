@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-// Import custom components and styles
+// Import all custom components and styles
 import './App.css';
 import { NerDisplay } from './NerDisplay';
 import { HeatmapDisplay } from './HeatmapDisplay';
@@ -11,41 +11,40 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { SentimentAnalysis } from './SentimentAnalysis';
 import { SearchResults } from './SearchResults';
 
-// --- Type Definitions for API data ---
+// --- Type Definitions ---
 interface JournalEntry { id: number; entry_date: string; content: string; tags: string | null; }
 interface Topic { topic_id: number; keywords: string[]; }
 interface EntityCount { text: string; count: number; }
 interface NerData { people: EntityCount[]; places: EntityCount[]; orgs: EntityCount[]; }
 
+// This defines the possible states our application can be in, for a better UX.
+type AppStatus = 'initializing' | 'importing' | 'embedding' | 'analyzing' | 'ready';
+
 function App() {
   // --- State Management ---
-  const [isLoading, setIsLoading] = useState({
-    entries: true,
-    topics: true,
-    ner: true,
-    onThisDay: true,
-    sentiment: true,
-  });
-
-  const [importMessage, setImportMessage] = useState('');
+  // A single state variable to track the overall application status.
+  const [appStatus, setAppStatus] = useState<AppStatus>('initializing');
+  const [statusMessage, setStatusMessage] = useState('Initializing application...');
   
+  // All our data states
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [nerData, setNerData] = useState<NerData | null>(null);
   const [onThisDayData, setOnThisDayData] = useState<JournalEntry[]>([]);
   const [topicData, setTopicData] = useState<Topic[]>([]);
   const [sentimentData, setSentimentData] = useState<any[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([]);
-
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<JournalEntry[] | null>(null);
 
-  // A ref to hold the polling interval so we can clear it.
   const pollingIntervalRef = useRef<number | null>(null);
   
   // --- Data Fetching ---
   const fetchAllData = async () => {
-    // We don't set loading to true here, as individual fetches will handle it.
+    // When we fetch, the app is in an "analyzing" state.
+    setAppStatus('analyzing');
+    setStatusMessage('Analyzing entries...');
+
     const responses = await Promise.allSettled([
       fetch('http://localhost:8000/api/entries'),
       fetch('http://localhost:8000/api/analysis/topics'),
@@ -71,55 +70,55 @@ function App() {
     if (responses[4].status === 'fulfilled' && responses[4].value.ok) {
       setSentimentData(await responses[4].value.json());
     }
-    setIsLoading({ entries: false, topics: false, ner: false, onThisDay: false, sentiment: false });
+    
+    setAppStatus('ready');
+    setStatusMessage(''); // Clear the status message when done
   };
 
   useEffect(() => {
-    fetchAllData();
+    fetchAllData(); // Initial data load when the app mounts
   }, []);
 
   // --- User Actions ---
-  const checkImportStatus = () => {
+  const checkEmbeddingStatus = () => {
     fetch('http://localhost:8000/api/import/status')
       .then(res => res.json())
       .then(status => {
         if (status.status === 'processing') {
-          setImportMessage(`Embedding entries... (${status.progress} / ${status.total})`);
-        } else {
+          setStatusMessage(`Embedding entries... (${status.progress} / ${status.total})`);
+        } else { // status is 'idle'
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
           }
-          setImportMessage('Embedding complete! Refreshing dashboard...');
+          // Now that embedding is done, we move to the 'analyzing' state by fetching all data.
           fetchAllData();
         }
       });
   };
 
   const handleImport = () => {
-    setImportMessage('Importing files...');
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-    }
+    setAppStatus('importing');
+    setStatusMessage('Importing files...');
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
 
     fetch('http://localhost:8000/api/import', { method: 'POST' })
       .then(res => res.json())
       .then(data => {
-        setImportMessage(data.message);
-        // Begin polling the status endpoint every 2 seconds.
-        pollingIntervalRef.current = setInterval(checkImportStatus, 2000);
+        setAppStatus('embedding'); // After import, the app is in the 'embedding' state.
+        setStatusMessage(data.message); // Show initial message
+        pollingIntervalRef.current = setInterval(checkEmbeddingStatus, 2000);
       })
       .catch(error => {
         console.error("Import failed:", error);
-        setImportMessage('An error occurred during import.');
+        setStatusMessage('An error occurred during import.');
+        setAppStatus('ready'); // Reset to ready on failure
       });
   };
 
   useEffect(() => {
-    // This is a cleanup function to stop polling if the component is unmounted.
+    // This cleanup function stops polling if the app is closed.
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     };
   }, []);
 
@@ -157,9 +156,11 @@ function App() {
 
       <div className="card grid-col-span-12">
         <div className="actions-card-content">
-          <button onClick={handleImport}>Import Journal Entries</button>
+          <button onClick={handleImport} disabled={appStatus !== 'ready'}>
+            {appStatus === 'ready' ? 'Import Journal Entries' : 'Processing...'}
+          </button>
           <button onClick={resetFilter}>Reset Entry Filter</button>
-          {importMessage && <p><i>{importMessage}</i></p>}
+          {statusMessage && <p><i>{statusMessage}</i></p>}
         </div>
       </div>
       
@@ -173,7 +174,7 @@ function App() {
             placeholder="e.g., times I felt hopeful about the future..."
             style={{ flexGrow: 1, padding: '0.5rem' }}
           />
-          <button type="submit" disabled={isSearching}>
+          <button type="submit" disabled={isSearching || appStatus !== 'ready'}>
             {isSearching ? 'Searching...' : 'Search'}
           </button>
         </form>
@@ -187,68 +188,73 @@ function App() {
         </div>
       )}
 
-      <div className="dashboard-container">
-        <div className="card grid-col-span-12">
-          <h2>On This Day in Your History</h2>
-          <OnThisDay entries={onThisDayData} isLoading={isLoading.onThisDay} />
-        </div>
+      {/* Conditionally render the entire dashboard based on the app's status */}
+      {appStatus === 'initializing' && <div className="card grid-col-span-12"><LoadingSpinner /></div>}
+      
+      {appStatus !== 'initializing' && (
+        <div className="dashboard-container">
+          <div className="card grid-col-span-12">
+            <h2>On This Day in Your History</h2>
+            {appStatus !== 'ready' ? <LoadingSpinner /> : <OnThisDay entries={onThisDayData} />}
+          </div>
 
-        <div className="card grid-col-span-12">
-          <h2>Sentiment Heatmap</h2>
-          {isLoading.sentiment ? <LoadingSpinner /> : <HeatmapDisplay sentimentData={sentimentData} />}
-        </div>
+          <div className="card grid-col-span-12">
+            <h2>Sentiment Heatmap</h2>
+            {appStatus !== 'ready' ? <LoadingSpinner /> : <HeatmapDisplay sentimentData={sentimentData} />}
+          </div>
 
-        <div className="card grid-col-span-12">
-          {isLoading.ner ? <LoadingSpinner /> : <NerDisplay nerData={nerData} onEntityClick={handleEntityClick} />}
-        </div>
-        
-        <div className="card grid-col-span-6">
-          <h2>Connection Engine</h2>
-          {isLoading.ner ? <LoadingSpinner /> : <ConnectionEngine nerData={nerData} />}
-        </div>
+          <div className="card grid-col-span-12">
+            {appStatus !== 'ready' ? <LoadingSpinner /> : <NerDisplay nerData={nerData} onEntityClick={handleEntityClick} />}
+          </div>
+          
+          <div className="card grid-col-span-6">
+            <h2>Connection Engine</h2>
+            {appStatus !== 'ready' ? <LoadingSpinner /> : <ConnectionEngine nerData={nerData} />}
+          </div>
 
-        <div className="card grid-col-span-6">
-          <h2>Common Connection Discovery</h2>
-          {isLoading.ner ? <LoadingSpinner /> : <CommonConnections nerData={nerData} />}
-        </div>
+          <div className="card grid-col-span-6">
+            <h2>Common Connection Discovery</h2>
+            {appStatus !== 'ready' ? <LoadingSpinner /> : <CommonConnections nerData={nerData} />}
+          </div>
 
-        <div className="card grid-col-span-8">
-          <h2>Sentiment Analysis</h2>
-          <SentimentAnalysis />
-        </div>
-        
-        <div className="card grid-col-span-4">
-            <h2>Notes & Observations</h2>
-            <p><i>This space can be used for future features or generated summaries.</i></p>
-        </div>
+          <div className="card grid-col-span-8">
+            <h2>Sentiment Analysis</h2>
+            {appStatus !== 'ready' ? <LoadingSpinner /> : <SentimentAnalysis />}
+          </div>
+          
+          <div className="card grid-col-span-4">
+              <h2>Notes & Observations</h2>
+              <p><i>This space can be used for future features or generated summaries.</i></p>
+          </div>
 
-        <div className="card grid-col-span-6">
-          <h2>Discovered Topics</h2>
-          {isLoading.topics ? <LoadingSpinner /> : (
-            <ul className="topics-list">
-              {topicData.length > 0 ? topicData.map(topic => (
-                <li key={topic.topic_id}>
-                  <strong>Topic {topic.topic_id + 1}:</strong> {topic.keywords.join(', ')}
-                </li>
-              )) : <p><i>No topics found.</i></p>}
-            </ul>
-          )}
-        </div>
+          <div className="card grid-col-span-6">
+            <h2>Discovered Topics</h2>
+            {appStatus !== 'ready' ? <LoadingSpinner /> : (
+              <ul className="topics-list">
+                {topicData.length > 0 ? topicData.map(topic => (
+                  <li key={topic.topic_id}>
+                    <strong>Topic {topic.topic_id + 1}:</strong> {topic.keywords.join(', ')}
+                  </li>
+                )) : <p><i>No topics found.</i></p>}
+              </ul>
+            )}
+          </div>
 
-        <div className="card grid-col-span-6">
-          <h2>Entries ({filteredEntries.length} of {entries.length})</h2>
-          {isLoading.entries ? <LoadingSpinner /> : (
-            <div className="entry-list">
-              {filteredEntries.map(entry => (
-                <div key={entry.id} className="entry-item">
-                  <h3>{entry.entry_date.substring(0, 10)}</h3>
-                  <p>{entry.content.substring(0, 100)}...</p>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="card grid-col-span-6">
+            <h2>Entries ({filteredEntries.length} of {entries.length})</h2>
+            {appStatus !== 'ready' ? <LoadingSpinner /> : (
+              <div className="entry-list">
+                {filteredEntries.map(entry => (
+                  <div key={entry.id} className="entry-item">
+                    <h3>{entry.entry_date.substring(0, 10)}</h3>
+                    <p>{entry.content.substring(0, 100)}...</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

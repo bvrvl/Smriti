@@ -1,5 +1,3 @@
-// Renders the "On This Day" entries, receiving all data as props.
-
 interface JournalEntry {
   id: number;
   entry_date: string;
@@ -9,21 +7,13 @@ interface JournalEntry {
 
 interface OnThisDayProps {
   entries: JournalEntry[];
-  isLoading: boolean;
 }
 
-export const OnThisDay = ({ entries, isLoading }: OnThisDayProps) => {
-  // Display a loading message while the data is being fetched.
-  if (isLoading) {
-    return <p><i>Loading memories...</i></p>;
-  }
-
-  // Display a message if no entries are found for today's date.
+export const OnThisDay = ({ entries }: OnThisDayProps) => {
   if (entries.length === 0) {
     return <p><i>No memories from this day in the past.</i></p>;
   }
 
-  // Render the list of entries once data is available.
   return (
     <div className="on-this-day-list">
       {entries.map(entry => (
