@@ -13,7 +13,6 @@
     "react": "^19.1.0",
     "react-calendar-heatmap": "^1.10.0",
     "react-dom": "^19.1.0",
-    "react-grid-layout": "^1.5.2",
     "react-select": "^5.10.2",
     "reaviz": "^16.0.5",
     "recharts": "^3.1.0"
