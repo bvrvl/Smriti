@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+// Renders the "On This Day" entries, receiving all data as props.
 
 interface JournalEntry {
   id: number;
@@ -7,36 +7,28 @@ interface JournalEntry {
   tags: string | null;
 }
 
-export const OnThisDay = () => {
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface OnThisDayProps {
+  entries: JournalEntry[];
+  isLoading: boolean;
+}
 
-  useEffect(() => {
-    fetch('http://localhost:8000/api/on-this-day')
-      .then(res => res.json())
-      .then(data => {
-        setEntries(data);
-        setIsLoading(false);
-      })
-      .catch(error => {
-        console.error("Failed to fetch 'On This Day' entries:", error);
-        setIsLoading(false);
-      });
-  }, []);
-
+export const OnThisDay = ({ entries, isLoading }: OnThisDayProps) => {
+  // Display a loading message while the data is being fetched.
   if (isLoading) {
     return <p><i>Loading memories...</i></p>;
   }
 
+  // Display a message if no entries are found for today's date.
   if (entries.length === 0) {
     return <p><i>No memories from this day in the past.</i></p>;
   }
 
+  // Render the list of entries once data is available.
   return (
     <div className="on-this-day-list">
       {entries.map(entry => (
         <div key={entry.id} className="entry-item">
-          <h4>{new Date(entry.entry_date).getFullYear()}</h4>
+          <h4>{entry.entry_date.substring(0, 4)}</h4>
           <p>{entry.content.substring(0, 250)}...</p>
           {entry.tags && <small>Tags: {entry.tags}</small>}
         </div>
