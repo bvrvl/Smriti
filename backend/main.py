@@ -1,227 +1,129 @@
-# --- Python Standard Library Imports ---
-from contextlib import asynccontextmanager
-import os
 import datetime as dt
-from typing import List
+import os
 import re
 from collections import Counter
+from contextlib import asynccontextmanager
 from itertools import combinations
+from typing import List, Union
 
-# --- Third-Party Imports ---
+#Third-Party Imports
+import nltk
+import spacy
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, not_, extract
-from sqlalchemy import func
-from typing import Union
-
-# --- NLP Library Imports ---
-import nltk
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from gensim.corpora import Dictionary
 from gensim.models.ldamodel import LdaModel
 from nltk.corpus import stopwords
-import spacy
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from pydantic import BaseModel, Field
+from sqlalchemy import and_, or_, not_, extract
+from sqlalchemy.orm import Session
 
-# --- Local Application Imports ---
 import database
 
-# =============================================================================
-# GLOBAL SETUP & MODEL LOADING
-# =============================================================================
-
-# Load the spaCy model into memory once on startup for efficient reuse.
+# --- Global Setup & Model Loading ---
+# Load the spaCy model into memory once on startup
 nlp = spacy.load("en_core_web_sm")
-
-# This command ensures that the database tables are created based on our models
-# in database.py when the application first starts.
+# Increase the max_length limit to handle large combined text from all journals
+nlp.max_length = 2000000
 database.Base.metadata.create_all(bind=database.engine)
 
 
-# =============================================================================
-# APPLICATION LIFESPAN & STATE MANAGEMENT
-# =============================================================================
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Manages the application's startup and shutdown events.
-    We create a single, shared database session here that lives for the entire
-    duration of the application. This is a robust pattern for this kind of app.
-    """
-    # Create the session when the app starts up
+    #Creates a single, shared database session for the application's entire lifespan.
     app.state.db = database.SessionLocal()
     print("Application startup complete. Database session created.")
     yield
-    # Close the session when the app is shutting down
     app.state.db.close()
     print("Application shutting down. Database session closed.")
 
+
 app = FastAPI(lifespan=lifespan)
 
-# CORS Middleware allows our frontend (running on localhost:5173) to make
-# requests to our backend (running on localhost:8000).
+#--- Middleware ---
 origins = ["http://localhost:5173"]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-# =============================================================================
-# PYDANTIC MODELS (API Data Schemas)
-# =============================================================================
-# These classes define the expected structure of data for our API endpoints.
 
+#--- Pydantic Models (API Data Schemas) ---
 class EntrySchema(BaseModel):
     id: int
-    entry_date: dt.date
+    entry_date: dt.datetime # Changed to datetime
     content: str
     tags: str | None = None
-    class Config:
-        from_attributes = True
+    class Config: from_attributes = True
 
-class SentimentDataPoint(BaseModel):
-    date: dt.date
-    score: float
-
-class AggregatedSentiment(BaseModel):
-    label: Union[int, str] # e.g., 'Monday' or 2023
-    average_score: float
-
-class SentimentDateRange(BaseModel):
-    start_date: dt.date
-    end_date: dt.date
-
-class Topic(BaseModel):
-    topic_id: int
-    keywords: List[str]
-
-class EntityCount(BaseModel):
-    text: str
-    count: int
-
-class NerResult(BaseModel):
-    people: List[EntityCount]
-    places: List[EntityCount]
-    orgs: List[EntityCount]
-
-class CoOccurrenceRequest(BaseModel):
-    entities: List[str] = Field(..., min_length=2, max_length=4)
-
-class VennSet(BaseModel):
-    key: List[str]
-    data: int
-
-class CommonConnectionResult(BaseModel):
-    entity1: str
-    entity2: str
-    common_entities: List[EntityCount]
+class SentimentDataPoint(BaseModel): date: dt.datetime; score: float # Changed to datetime
+class AggregatedSentiment(BaseModel): label: Union[int, str]; average_score: float
+class Topic(BaseModel): topic_id: int; keywords: List[str]
+class EntityCount(BaseModel): text: str; count: int
+class NerResult(BaseModel): people: List[EntityCount]; places: List[EntityCount]; orgs: List[EntityCount]
+class CoOccurrenceRequest(BaseModel): entities: List[str] = Field(..., min_length=2, max_length=4)
+class VennSet(BaseModel): key: List[str]; data: int
+class CommonConnectionResult(BaseModel): entity1: str; entity2: str; common_entities: List[EntityCount]
 
 
-# =============================================================================
-# API ENDPOINTS
-# =============================================================================
-
+#--- API Endpoints ---
 @app.post("/api/import")
 def import_entries(request: Request):
-    """
-    The core data ingestion endpoint. It reads all files from the /data directory,
-    parses them, cleans them, and saves new, unique entries to the database.
-    """
     db = request.app.state.db
     data_dir = "/data"
-    if not os.path.exists(data_dir):
-        return {"message": "Data directory not found."}
+    if not os.path.exists(data_dir): return {"message": "Data directory not found."}
 
     imported_count, skipped_count = 0, 0
     
     # Stage 1: Read and parse all files into a temporary list.
     all_parsed_entries = []
     for filename in os.listdir(data_dir):
-        if not filename.endswith((".md", ".txt")):
-            continue
-
-        with open(os.path.join(data_dir, filename), 'r', encoding='utf-8') as f:
-            raw_content = f.read()
-
+        if not filename.endswith((".md", ".txt")): continue
+        with open(os.path.join(data_dir, filename), 'r', encoding='utf-8') as f: raw_content = f.read()
         date_obj, tags, clean_content = None, None, ""
-        
-        # Parse the 'Created:' date from the file content first.
         date_match = re.search(r"Created:\s*(.+)", raw_content)
         if date_match:
             date_str = date_match.group(1).strip()
             for fmt in ("%B %d, %Y %I:%M %p", "%B %d, %Y"):
                 try:
-                    date_obj = dt.datetime.strptime(date_str, fmt).date()
+                    date_obj = dt.datetime.strptime(date_str, fmt) # Keep as datetime object
                     break
-                except ValueError:
-                    continue
-        
-        # If no date was found in the content, fall back to parsing the filename.
+                except ValueError: continue
         if not date_obj:
             try:
-                date_obj = dt.datetime.strptime(filename.split('.')[0], "%Y-%m-%d").date()
+                date_obj = dt.datetime.strptime(filename.split('.')[0], "%Y-%m-%d") # Keep as datetime
             except ValueError:
                 skipped_count += 1
                 continue
-
-        # Parse the 'Tags:' line, if it exists.
         tags_match = re.search(r"Tags:\s*(.+)", raw_content)
-        if tags_match:
-            tags = tags_match.group(1).strip()
-        
-        # Clean the content by removing the title and metadata lines.
+        if tags_match: tags = tags_match.group(1).strip()
         lines = raw_content.splitlines()
-        content_lines = [
-            line for line in lines if not (
-                line.strip().startswith('#') or \
-                line.strip().lower().startswith('created:') or \
-                line.strip().lower().startswith('tags:')
-            )
-        ]
+        content_lines = [line for line in lines if not (line.strip().startswith('#') or line.strip().lower().startswith('created:') or line.strip().lower().startswith('tags:'))]
         clean_content = "\n".join(content_lines).strip()
-        
-        all_parsed_entries.append({
-            "entry_date": date_obj,
-            "content": clean_content,
-            "tags": tags
-        })
+        all_parsed_entries.append({"entry_date": date_obj, "content": clean_content, "tags": tags})
 
     # Stage 2: Perform a single, efficient database transaction.
     if all_parsed_entries:
         existing_dates = {result[0] for result in db.query(database.JournalEntry.entry_date).all()}
-        
-        # De-duplicate the list of parsed entries to handle multiple files for the same day.
         unique_new_entries = {}
         for parsed_entry in all_parsed_entries:
             entry_date = parsed_entry["entry_date"]
             if entry_date not in existing_dates and entry_date not in unique_new_entries:
                 unique_new_entries[entry_date] = parsed_entry
-        
         entries_to_add = [database.JournalEntry(**entry_data) for entry_data in unique_new_entries.values()]
-        
         if entries_to_add:
             db.add_all(entries_to_add)
             db.commit()
             imported_count = len(entries_to_add)
-
     return {"message": f"Successfully imported {imported_count} new entries. Skipped {skipped_count} files."}
 
 
 @app.get("/api/entries", response_model=List[EntrySchema])
 def get_entries(request: Request):
-    """Returns all journal entries, sorted from newest to oldest."""
     db = request.app.state.db
     return db.query(database.JournalEntry).order_by(database.JournalEntry.entry_date.desc()).all()
 
 
 @app.get("/api/on-this-day", response_model=List[EntrySchema])
 def get_on_this_day(request: Request):
-    """Finds and returns journal entries written on today's date in previous years."""
     db = request.app.state.db
     today = dt.date.today()
     return db.query(database.JournalEntry).filter(
@@ -232,7 +134,6 @@ def get_on_this_day(request: Request):
 
 @app.get("/api/analysis/sentiment", response_model=List[SentimentDataPoint])
 def get_sentiment_analysis(request: Request):
-    """Calculates a sentiment score for each entry and returns it as a time series."""
     db = request.app.state.db
     sid = SentimentIntensityAnalyzer()
     entries = db.query(database.JournalEntry).order_by(database.JournalEntry.entry_date.asc()).all()
@@ -241,6 +142,62 @@ def get_sentiment_analysis(request: Request):
         sentiment_scores = sid.polarity_scores(entry.content)
         results.append({"date": entry.entry_date, "score": sentiment_scores['compound']})
     return results
+
+
+@app.get("/api/analysis/sentiment/weekday", response_model=List[AggregatedSentiment])
+def get_sentiment_by_weekday(request: Request):
+    db = request.app.state.db
+    sid = SentimentIntensityAnalyzer()
+    entries = db.query(database.JournalEntry).all()
+    weekday_scores = {i: [] for i in range(7)}
+    for entry in entries:
+        weekday = entry.entry_date.weekday()
+        score = sid.polarity_scores(entry.content)['compound']
+        weekday_scores[weekday].append(score)
+    weekday_map = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    results = []
+    for i in range(7):
+        if weekday_scores[i]:
+            avg = sum(weekday_scores[i]) / len(weekday_scores[i])
+            results.append({"label": weekday_map[i], "average_score": avg})
+    return results
+
+
+@app.get("/api/analysis/sentiment/month", response_model=List[AggregatedSentiment])
+def get_sentiment_by_month(request: Request):
+    db = request.app.state.db
+    sid = SentimentIntensityAnalyzer()
+    entries = db.query(database.JournalEntry).all()
+    month_scores = {i: [] for i in range(1, 13)}
+    for entry in entries:
+        month = entry.entry_date.month
+        score = sid.polarity_scores(entry.content)['compound']
+        month_scores[month].append(score)
+    month_map = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    results = []
+    for i in range(1, 13):
+        if month_scores[i]:
+            avg = sum(month_scores[i]) / len(month_scores[i])
+            results.append({"label": month_map[i-1], "average_score": avg})
+    return results
+
+@app.get("/api/analysis/sentiment/hour", response_model=List[AggregatedSentiment])
+def get_sentiment_by_hour(request: Request):
+    db = request.app.state.db
+    sid = SentimentIntensityAnalyzer()
+    entries = db.query(database.JournalEntry).all()
+    hour_scores = {i: [] for i in range(24)}
+    for entry in entries:
+        hour = entry.entry_date.hour
+        score = sid.polarity_scores(entry.content)['compound']
+        hour_scores[hour].append(score)
+    results = []
+    for hour, scores in hour_scores.items():
+        if scores:
+            avg_score = sum(scores) / len(scores)
+            label = f"{hour:02d}:00" 
+            results.append({"label": label, "average_score": avg_score})
+    return sorted(results, key=lambda x: x['label'])
 
 
 @app.get("/api/analysis/topics", response_model=List[Topic])
@@ -262,7 +219,6 @@ def get_topic_analysis(request: Request):
     dictionary = Dictionary(processed_docs)
     if not dictionary: return []
 
-    # Filter out words that are too rare or too common to be good topic indicators.
     dictionary.filter_extremes(no_below=1, no_above=0.8)
     if not dictionary: return []
 
@@ -298,13 +254,11 @@ def get_ner_analysis(request: Request):
     places_counts = Counter(places)
     orgs_counts = Counter(orgs)
     
-    # Return the top 15 most common entities for each category.
     top_people = [{"text": text, "count": count} for text, count in people_counts.most_common(15)]
     top_places = [{"text": text, "count": count} for text, count in places_counts.most_common(15)]
     top_orgs = [{"text": text, "count": count} for text, count in orgs_counts.most_common(15)]
     
     return {"people": top_people, "places": top_places, "orgs": top_orgs}
-
 
 @app.post("/api/analysis/co-occurrence", response_model=List[VennSet])
 def post_co_occurrence(req: CoOccurrenceRequest, request: Request):
@@ -362,61 +316,3 @@ def get_common_connections(entity1: str, entity2: str, request: Request):
     
     return {"entity1": entity1, "entity2": entity2, "common_entities": top_common}
 
-@app.post("/api/analysis/sentiment/range", response_model=List[SentimentDataPoint])
-def get_sentiment_by_date_range(date_range: SentimentDateRange, request: Request):
-    """Returns sentiment data for a specific date range."""
-    db = request.app.state.db
-    sid = SentimentIntensityAnalyzer()
-    entries = db.query(database.JournalEntry).filter(
-        database.JournalEntry.entry_date.between(date_range.start_date, date_range.end_date)
-    ).order_by(database.JournalEntry.entry_date.asc()).all()
-    
-    results = []
-    for entry in entries:
-        scores = sid.polarity_scores(entry.content)
-        results.append({"date": entry.entry_date, "score": scores['compound']})
-    return results
-
-@app.get("/api/analysis/sentiment/weekday", response_model=List[AggregatedSentiment])
-def get_sentiment_by_weekday(request: Request):
-    """Calculates the average sentiment for each day of the week."""
-    db = request.app.state.db
-    sid = SentimentIntensityAnalyzer()
-    entries = db.query(database.JournalEntry).all()
-    
-    # Calculate scores in Python
-    weekday_scores = {i: [] for i in range(7)} # 0 = Monday, 6 = Sunday
-    for entry in entries:
-        weekday = entry.entry_date.weekday()
-        score = sid.polarity_scores(entry.content)['compound']
-        weekday_scores[weekday].append(score)
-        
-    # Aggregate the results
-    weekday_map = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    results = []
-    for i in range(7):
-        if weekday_scores[i]:
-            avg = sum(weekday_scores[i]) / len(weekday_scores[i])
-            results.append({"label": weekday_map[i], "average_score": avg})
-    return results
-
-@app.get("/api/analysis/sentiment/month", response_model=List[AggregatedSentiment])
-def get_sentiment_by_month(request: Request):
-    """Calculates the average sentiment for each month of the year."""
-    db = request.app.state.db
-    sid = SentimentIntensityAnalyzer()
-    entries = db.query(database.JournalEntry).all()
-    
-    month_scores = {i: [] for i in range(1, 13)} # 1 = Jan, 12 = Dec
-    for entry in entries:
-        month = entry.entry_date.month
-        score = sid.polarity_scores(entry.content)['compound']
-        month_scores[month].append(score)
-    
-    month_map = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    results = []
-    for i in range(1, 13):
-        if month_scores[i]:
-            avg = sum(month_scores[i]) / len(month_scores[i])
-            results.append({"label": month_map[i-1], "average_score": avg})
-    return results

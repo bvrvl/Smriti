@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-
 import './App.css';
 import { NerDisplay } from './NerDisplay';
 import { HeatmapDisplay } from './HeatmapDisplay';
@@ -22,21 +21,20 @@ function App() {
     topics: true,
     ner: true,
     onThisDay: true,
-    sentiment: true, // Keep a general sentiment flag for the heatmap
+    sentiment: true,
   });
 
   const [importMessage, setImportMessage] = useState('');
   
-  // State variables for data that is shared across multiple components.
+  // State for data shared across multiple components
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [nerData, setNerData] = useState<NerData | null>(null);
   const [onThisDayData, setOnThisDayData] = useState<JournalEntry[]>([]);
   const [topicData, setTopicData] = useState<Topic[]>([]);
-  const [sentimentData, setSentimentData] = useState<any[]>([]); // For the heatmap
+  const [sentimentData, setSentimentData] = useState<any[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([]);
 
   // --- Data Fetching ---
-  // This function fetches all the necessary data for the dashboard.
   const fetchAllData = () => {
     setIsLoading({ entries: true, topics: true, ner: true, onThisDay: true, sentiment: true });
 
@@ -45,16 +43,12 @@ function App() {
       fetch('http://localhost:8000/api/analysis/topics'),
       fetch('http://localhost:8000/api/analysis/ner'),
       fetch('http://localhost:8000/api/on-this-day'),
-      fetch('http://localhost:8000/api/analysis/sentiment') // For the heatmap
+      fetch('http://localhost:8000/api/analysis/sentiment')
     ]).then(async ([entriesRes, topicsRes, nerRes, onThisDayRes, sentimentRes]) => {
-      // Once all fetches are complete, parse their JSON responses.
-      const entriesData = await entriesRes.json();
-      const topicsData = await topicsRes.json();
-      const nerData = await nerRes.json();
-      const onThisDayData = await onThisDayRes.json();
-      const sentimentData = await sentimentRes.json();
+      const [entriesData, topicsData, nerData, onThisDayData, sentimentData] = await Promise.all([
+        entriesRes.json(), topicsRes.json(), nerRes.json(), onThisDayRes.json(), sentimentRes.json()
+      ]);
 
-      // Set all state variables to trigger a single re-render.
       setEntries(entriesData);
       setFilteredEntries(entriesData);
       setTopicData(topicsData);
@@ -68,7 +62,6 @@ function App() {
     });
   };
 
-  // This `useEffect` runs only once when the component first loads.
   useEffect(() => {
     fetchAllData();
   }, []);
@@ -80,7 +73,7 @@ function App() {
       .then(res => res.json())
       .then(data => {
         setImportMessage(data.message);
-        fetchAllData(); // Re-fetch all data to update the dashboard.
+        fetchAllData();
       })
       .catch(error => {
         console.error("Import failed:", error);
@@ -137,10 +130,14 @@ function App() {
           {isLoading.ner ? <LoadingSpinner /> : <CommonConnections nerData={nerData} />}
         </div>
 
-        <div className="card grid-col-span-12">
+        <div className="card grid-col-span-8">
           <h2>Sentiment Analysis</h2>
-          {/* This new component handles its own data fetching and loading states internally. */}
           <SentimentAnalysis />
+        </div>
+        
+        <div className="card grid-col-span-4">
+            <h2>Notes & Observations</h2>
+            <p><i>This space can be used for future features or generated summaries.</i></p>
         </div>
 
         <div className="card grid-col-span-6">
@@ -162,7 +159,7 @@ function App() {
             <div className="entry-list">
               {filteredEntries.map(entry => (
                 <div key={entry.id} className="entry-item">
-                  <h3>{entry.entry_date}</h3>
+                  <h3>{entry.entry_date.substring(0, 10)}</h3>
                   <p>{entry.content.substring(0, 100)}...</p>
                 </div>
               ))}
