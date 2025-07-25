@@ -111,7 +111,17 @@ function App() {
         </div>
         <div key="topics" className="card">
           <h2>Discovered Topics</h2>
-          {/* (Topic Display Logic) */}
+            {topicData.length > 0 ? (
+             <ul>
+                {topicData.map(topic => (
+                  <li key={topic.topic_id}>
+                      <strong>Topic {topic.topic_id + 1}:</strong> {topic.keywords.join(', ')}
+                  </li>
+                  ))}
+              </ul>
+           ) : (
+              <p><i>Import entries to analyze topics. (Need at least 5)</i></p>
+           )}
         </div>
         <div key="entries" className="card">
           <h2>Entries ({filteredEntries.length} of {entries.length})</h2>
