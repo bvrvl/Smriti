@@ -1,16 +1,10 @@
-# Core Application & API Framework
 fastapi
 uvicorn[standard]
 sqlalchemy
-
-#NLP libraries:
-
 nltk==3.8.1
 spacy
-
 gensim
-
-# Newer versions of scipy (>1.12) remove
-#`scipy.linalg.triu`, which older versions of gensim rely on.
 scikit-learn==1.7.1
 scipy==1.11.4
+sentence-transformers
+numpy

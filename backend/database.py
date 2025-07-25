@@ -1,5 +1,5 @@
 import datetime as dt
-from sqlalchemy import create_engine, Text, Date, String, DateTime
+from sqlalchemy import create_engine, Text, Date, String, DateTime, BLOB
 from sqlalchemy.orm import sessionmaker, DeclarativeBase, Mapped, mapped_column
 
 #The database is stored in a temporary directory and is wiped on each restart.
@@ -25,3 +25,4 @@ class JournalEntry(Base):
     entry_date: Mapped[dt.datetime] = mapped_column(unique=True, index=True)
     content: Mapped[str] = mapped_column(Text)
     tags: Mapped[str | None]
+    embedding: Mapped[bytes | None] = mapped_column(BLOB, nullable=True)

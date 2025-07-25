@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from itertools import combinations
 from typing import List, Union
 
+
 #Third-Party Imports
 import nltk
 import spacy
@@ -19,13 +20,22 @@ from pydantic import BaseModel, Field
 from sqlalchemy import and_, or_, not_, extract
 from sqlalchemy.orm import Session
 
+from sentence_transformers import SentenceTransformer
+import numpy as np
+import pickle
+from sklearn.metrics.pairwise import cosine_similarity
+
+
 import database
 
 # --- Global Setup & Model Loading ---
 # Load the spaCy model into memory once on startup
 nlp = spacy.load("en_core_web_sm")
+
 # Increase the max_length limit to handle large combined text from all journals
 nlp.max_length = 2000000
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+
 database.Base.metadata.create_all(bind=database.engine)
 
 
@@ -62,7 +72,8 @@ class NerResult(BaseModel): people: List[EntityCount]; places: List[EntityCount]
 class CoOccurrenceRequest(BaseModel): entities: List[str] = Field(..., min_length=2, max_length=4)
 class VennSet(BaseModel): key: List[str]; data: int
 class CommonConnectionResult(BaseModel): entity1: str; entity2: str; common_entities: List[EntityCount]
-
+class SemanticSearchRequest(BaseModel):
+    query: str
 
 #--- API Endpoints ---
 @app.post("/api/import")
@@ -108,7 +119,14 @@ def import_entries(request: Request):
             entry_date = parsed_entry["entry_date"]
             if entry_date not in existing_dates and entry_date not in unique_new_entries:
                 unique_new_entries[entry_date] = parsed_entry
-        entries_to_add = [database.JournalEntry(**entry_data) for entry_data in unique_new_entries.values()]
+        entries_to_add = []
+        for entry_data in unique_new_entries.values():
+        # Generate the vector embedding for the entry's content
+            vector = embedding_model.encode(entry_data['content'])
+        # We must serialize the numpy array to bytes to store it in the BLOB
+            entry_data['embedding'] = pickle.dumps(vector)
+            entries_to_add.append(database.JournalEntry(**entry_data))
+
         if entries_to_add:
             db.add_all(entries_to_add)
             db.commit()
@@ -316,3 +334,28 @@ def get_common_connections(entity1: str, entity2: str, request: Request):
     
     return {"entity1": entity1, "entity2": entity2, "common_entities": top_common}
 
+@app.post("/api/search/semantic", response_model=List[EntrySchema])
+def semantic_search(search_req: SemanticSearchRequest, request: Request):
+    db = request.app.state.db
+    
+    # Step 1: Fetch all entries that have an embedding
+    entries_with_embeddings = db.query(database.JournalEntry).filter(
+        database.JournalEntry.embedding.is_not(None)
+    ).all()
+
+    if not entries_with_embeddings:
+        return []
+
+    # Step 2: Convert the user's query into a vector
+    query_vector = embedding_model.encode([search_req.query])
+
+    # Step 3: Calculate similarity
+    entry_embeddings = np.array([pickle.loads(entry.embedding) for entry in entries_with_embeddings])
+    similarities = cosine_similarity(query_vector, entry_embeddings)[0]
+
+    # Step 4: Find the top 10 most similar entries
+    top_indices = np.argsort(similarities)[-10:][::-1]
+    
+    top_entries = [entries_with_embeddings[i] for i in top_indices if similarities[i] > 0.3] # Threshold
+    
+    return top_entries
