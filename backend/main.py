@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, not_, extract
+from sqlalchemy import func
+from typing import Union
 
 # --- NLP Library Imports ---
 import nltk
@@ -85,6 +87,14 @@ class EntrySchema(BaseModel):
 class SentimentDataPoint(BaseModel):
     date: dt.date
     score: float
+
+class AggregatedSentiment(BaseModel):
+    label: Union[int, str] # e.g., 'Monday' or 2023
+    average_score: float
+
+class SentimentDateRange(BaseModel):
+    start_date: dt.date
+    end_date: dt.date
 
 class Topic(BaseModel):
     topic_id: int
@@ -351,3 +361,62 @@ def get_common_connections(entity1: str, entity2: str, request: Request):
     top_common = [{"text": text, "count": count} for text, count in common_counts.most_common(10)]
     
     return {"entity1": entity1, "entity2": entity2, "common_entities": top_common}
+
+@app.post("/api/analysis/sentiment/range", response_model=List[SentimentDataPoint])
+def get_sentiment_by_date_range(date_range: SentimentDateRange, request: Request):
+    """Returns sentiment data for a specific date range."""
+    db = request.app.state.db
+    sid = SentimentIntensityAnalyzer()
+    entries = db.query(database.JournalEntry).filter(
+        database.JournalEntry.entry_date.between(date_range.start_date, date_range.end_date)
+    ).order_by(database.JournalEntry.entry_date.asc()).all()
+    
+    results = []
+    for entry in entries:
+        scores = sid.polarity_scores(entry.content)
+        results.append({"date": entry.entry_date, "score": scores['compound']})
+    return results
+
+@app.get("/api/analysis/sentiment/weekday", response_model=List[AggregatedSentiment])
+def get_sentiment_by_weekday(request: Request):
+    """Calculates the average sentiment for each day of the week."""
+    db = request.app.state.db
+    sid = SentimentIntensityAnalyzer()
+    entries = db.query(database.JournalEntry).all()
+    
+    # Calculate scores in Python
+    weekday_scores = {i: [] for i in range(7)} # 0 = Monday, 6 = Sunday
+    for entry in entries:
+        weekday = entry.entry_date.weekday()
+        score = sid.polarity_scores(entry.content)['compound']
+        weekday_scores[weekday].append(score)
+        
+    # Aggregate the results
+    weekday_map = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    results = []
+    for i in range(7):
+        if weekday_scores[i]:
+            avg = sum(weekday_scores[i]) / len(weekday_scores[i])
+            results.append({"label": weekday_map[i], "average_score": avg})
+    return results
+
+@app.get("/api/analysis/sentiment/month", response_model=List[AggregatedSentiment])
+def get_sentiment_by_month(request: Request):
+    """Calculates the average sentiment for each month of the year."""
+    db = request.app.state.db
+    sid = SentimentIntensityAnalyzer()
+    entries = db.query(database.JournalEntry).all()
+    
+    month_scores = {i: [] for i in range(1, 13)} # 1 = Jan, 12 = Dec
+    for entry in entries:
+        month = entry.entry_date.month
+        score = sid.polarity_scores(entry.content)['compound']
+        month_scores[month].append(score)
+    
+    month_map = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    results = []
+    for i in range(1, 13):
+        if month_scores[i]:
+            avg = sum(month_scores[i]) / len(month_scores[i])
+            results.append({"label": month_map[i-1], "average_score": avg})
+    return results

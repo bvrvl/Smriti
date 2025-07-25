@@ -1,76 +1,70 @@
-// This is the main component that orchestrates the entire application dashboard.
 import { useState, useEffect } from 'react';
 
-// Import custom components and styles
 import './App.css';
-import { SentimentChart } from './SentimentChart';
 import { NerDisplay } from './NerDisplay';
 import { HeatmapDisplay } from './HeatmapDisplay';
 import { ConnectionEngine } from './ConnectionEngine';
 import { CommonConnections } from './CommonConnections';
 import { OnThisDay } from './OnThisDay';
 import { LoadingSpinner } from './LoadingSpinner';
+import { SentimentAnalysis } from './SentimentAnalysis';
 
 // --- Type Definitions for API data ---
 interface JournalEntry { id: number; entry_date: string; content: string; tags: string | null; }
-interface SentimentDataPoint { date: string; score: number; }
 interface Topic { topic_id: number; keywords: string[]; }
 interface EntityCount { text: string; count: number; }
 interface NerData { people: EntityCount[]; places: EntityCount[]; orgs: EntityCount[]; }
 
 function App() {
   // --- State Management ---
-  // A single object to track the loading state of each data type individually.
   const [isLoading, setIsLoading] = useState({
     entries: true,
-    sentiment: true,
     topics: true,
     ner: true,
     onThisDay: true,
+    sentiment: true, // Keep a general sentiment flag for the heatmap
   });
 
   const [importMessage, setImportMessage] = useState('');
   
-  // State variables for all data fetched from the backend.
+  // State variables for data that is shared across multiple components.
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [sentimentData, setSentimentData] = useState<SentimentDataPoint[]>([]);
-  const [topicData, setTopicData] = useState<Topic[]>([]);
   const [nerData, setNerData] = useState<NerData | null>(null);
   const [onThisDayData, setOnThisDayData] = useState<JournalEntry[]>([]);
+  const [topicData, setTopicData] = useState<Topic[]>([]);
+  const [sentimentData, setSentimentData] = useState<any[]>([]); // For the heatmap
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([]);
 
   // --- Data Fetching ---
+  // This function fetches all the necessary data for the dashboard.
   const fetchAllData = () => {
-    // Set all loading states to true before fetching.
-    setIsLoading({ entries: true, sentiment: true, topics: true, ner: true, onThisDay: true });
+    setIsLoading({ entries: true, topics: true, ner: true, onThisDay: true, sentiment: true });
 
-    // Use Promise.all to fetch all data in parallel for efficiency.
     Promise.all([
       fetch('http://localhost:8000/api/entries'),
-      fetch('http://localhost:8000/api/analysis/sentiment'),
       fetch('http://localhost:8000/api/analysis/topics'),
       fetch('http://localhost:8000/api/analysis/ner'),
-      fetch('http://localhost:8000/api/on-this-day')
-    ]).then(async ([entriesRes, sentimentRes, topicsRes, nerRes, onThisDayRes]) => {
-      // Once all fetches are complete, parse the JSON from their responses.
+      fetch('http://localhost:8000/api/on-this-day'),
+      fetch('http://localhost:8000/api/analysis/sentiment') // For the heatmap
+    ]).then(async ([entriesRes, topicsRes, nerRes, onThisDayRes, sentimentRes]) => {
+      // Once all fetches are complete, parse their JSON responses.
       const entriesData = await entriesRes.json();
-      const sentimentData = await sentimentRes.json();
       const topicsData = await topicsRes.json();
       const nerData = await nerRes.json();
       const onThisDayData = await onThisDayRes.json();
+      const sentimentData = await sentimentRes.json();
 
-      // Set all state variables at once to trigger a single re-render.
+      // Set all state variables to trigger a single re-render.
       setEntries(entriesData);
       setFilteredEntries(entriesData);
-      setSentimentData(sentimentData);
       setTopicData(topicsData);
       setNerData(nerData);
       setOnThisDayData(onThisDayData);
+      setSentimentData(sentimentData);
     }).catch(error => {
       console.error("Failed to fetch initial data:", error);
     }).finally(() => {
-      // Once everything is done (success or fail), turn off all loading spinners.
-      setIsLoading({ entries: false, sentiment: false, topics: false, ner: false, onThisDay: false });
+      setIsLoading({ entries: false, topics: false, ner: false, onThisDay: false, sentiment: false });
     });
   };
 
@@ -86,7 +80,7 @@ function App() {
       .then(res => res.json())
       .then(data => {
         setImportMessage(data.message);
-        fetchAllData(); // Re-fetch all data after a successful import.
+        fetchAllData(); // Re-fetch all data to update the dashboard.
       })
       .catch(error => {
         console.error("Import failed:", error);
@@ -144,8 +138,9 @@ function App() {
         </div>
 
         <div className="card grid-col-span-12">
-          <h2>Sentiment Over Time</h2>
-          {isLoading.sentiment ? <LoadingSpinner /> : <SentimentChart data={sentimentData} />}
+          <h2>Sentiment Analysis</h2>
+          {/* This new component handles its own data fetching and loading states internally. */}
+          <SentimentAnalysis />
         </div>
 
         <div className="card grid-col-span-6">
