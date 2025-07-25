@@ -25,3 +25,4 @@ class JournalEntry(Base):
     id = Column(Integer, primary_key=True, index=True)
     entry_date = Column(Date, unique=True, index=True)
     content = Column(Text)
+    tags = Column(String, nullable=True)

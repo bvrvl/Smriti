@@ -68,6 +68,7 @@ class EntrySchema(BaseModel):
     id: int
     entry_date: dt.date
     content: str
+    tags: str | None = None
     class Config:
         from_attributes = True
 
@@ -106,28 +107,94 @@ class CommonConnectionResult(BaseModel):
 # API ENDPOINTS
 # =============================================================================
 @app.post("/api/import")
+def parse_and_clean_content(file_content: str, filename: str):
+    """
+    Parses metadata from the journal entry, cleans the content, and returns a structured dictionary.
+    """
+    date_obj = None
+    tags = None
+    
+    # 1. Try to find date in "Created: Month Day, Year HH:MM AM/PM" format
+    date_match = re.search(r"Created:\s*(.+)", file_content)
+    if date_match:
+        date_str = date_match.group(1).strip()
+        # Try parsing with time, then without, to be flexible
+        for fmt in ("%B %d, %Y %I:%M %p", "%B %d, %Y"):
+            try:
+                date_obj = dt.datetime.strptime(date_str, fmt).date()
+                break
+            except ValueError:
+                continue
+
+    # 2. If no date found in content, fallback to filename parsing
+    if not date_obj:
+        try:
+            date_str = filename.split('.')[0]
+            date_obj = dt.datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            # If filename also fails, we can't process this entry
+            return None
+
+    # 3. Find tags
+    tags_match = re.search(r"Tags:\s*(.+)", file_content)
+    if tags_match:
+        tags = tags_match.group(1).strip()
+
+    # 4. Clean the content: remove title, Created line, and Tags line
+    lines = file_content.splitlines()
+    content_lines = []
+    for line in lines:
+        if not line.strip().startswith('#') and \
+           not line.strip().lower().startswith('created:') and \
+           not line.strip().lower().startswith('tags:'):
+            content_lines.append(line)
+    
+    clean_content = "\n".join(content_lines).strip()
+    
+    return {
+        "entry_date": date_obj,
+        "tags": tags,
+        "content": clean_content
+    }
+
+
+@app.post("/api/import")
 def import_entries(db: Session = Depends(get_db)):
     data_dir = "/data"
     if not os.path.exists(data_dir):
         return {"message": "Data directory not found."}
+
     imported_count = 0
+    skipped_count = 0
     for filename in os.listdir(data_dir):
-        if filename.endswith(".md"):
-            try:
-                date_str = filename.split('.')[0]
-                entry_date = dt.datetime.strptime(date_str, "%Y-%m-%d").date()
-                with open(os.path.join(data_dir, filename), 'r') as f:
-                    content = f.read()
-                exists = db.query(database.JournalEntry).filter(database.JournalEntry.entry_date == entry_date).first()
-                if not exists:
-                    new_entry = database.JournalEntry(entry_date=entry_date, content=content)
-                    db.add(new_entry)
-                    imported_count += 1
-            except ValueError:
-                print(f"Skipping file with invalid name format: {filename}")
+        if filename.endswith((".md", ".txt")):
+            with open(os.path.join(data_dir, filename), 'r', encoding='utf-8') as f:
+                raw_content = f.read()
+            
+            parsed_data = parse_and_clean_content(raw_content, filename)
+            
+            if not parsed_data:
+                skipped_count += 1
                 continue
+            
+            # Check if an entry for this date already exists in the DB
+            exists = db.query(database.JournalEntry).filter(
+                database.JournalEntry.entry_date == parsed_data["entry_date"]
+            ).first()
+            
+            if not exists:
+                new_entry = database.JournalEntry(
+                    entry_date=parsed_data["entry_date"],
+                    content=parsed_data["content"],
+                    tags=parsed_data["tags"]
+                )
+                db.add(new_entry)
+                imported_count += 1
+    
     db.commit()
-    return {"message": f"Successfully imported {imported_count} new entries."}
+    return {
+        "message": f"Successfully imported {imported_count} new entries. Skipped {skipped_count} files."
+    }
 
 @app.get("/api/entries", response_model=List[EntrySchema])
 def get_entries(db: Session = Depends(get_db)):
