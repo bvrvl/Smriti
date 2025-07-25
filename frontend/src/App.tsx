@@ -6,92 +6,127 @@ import { HeatmapDisplay } from './HeatmapDisplay';
 import { ConnectionEngine } from './ConnectionEngine';
 import { CommonConnections } from './CommonConnections';
 
-// --- Interfaces for our data shapes ---
+// --- Interfaces ---
 interface JournalEntry { id: number; entry_date: string; content: string; }
 interface SentimentDataPoint { date: string; score: number; }
 interface Topic { topic_id: number; keywords: string[]; }
 interface EntityCount { text: string; count: number; }
-interface NerData {
-  people: EntityCount[];
-  places: EntityCount[];
-  orgs: EntityCount[];
-}
+interface NerData { people: EntityCount[]; places: EntityCount[]; orgs: EntityCount[]; }
 
 function App() {
-  // --- State variables ---
+  // --- State ---
   const [importMessage, setImportMessage] = useState('');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [sentimentData, setSentimentData] = useState<SentimentDataPoint[]>([]);
   const [topicData, setTopicData] = useState<Topic[]>([]);
   const [nerData, setNerData] = useState<NerData | null>(null);
-
-  // --- Data fetching functions ---
-  const fetchAllData = () => {
-    fetch('http://localhost:8000/api/entries').then(res => res.json()).then(setEntries).catch(console.error);
-    fetch('http://localhost:8000/api/analysis/sentiment').then(res => res.json()).then(setSentimentData).catch(console.error);
-    fetch('http://localhost:8000/api/analysis/topics').then(res => res.json()).then(setTopicData).catch(console.error);
-    fetch('http://localhost:8000/api/analysis/ner').then(res => res.json()).then(setNerData).catch(console.error);
-    
+  const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([]);
+  
+  // --- Data Fetching ---
+  const fetchAllData = async () => {
+      try {
+          const [entriesRes, sentimentRes, topicsRes, nerRes] = await Promise.all([
+              fetch('http://localhost:8000/api/entries'),
+              fetch('http://localhost:8000/api/analysis/sentiment'),
+              fetch('http://localhost:8000/api/analysis/topics'),
+              fetch('http://localhost:8000/api/analysis/ner')
+          ]);
+          const [entriesData, sentimentData, topicsData, nerData] = await Promise.all([
+              entriesRes.json(), sentimentRes.json(), topicsRes.json(), nerRes.json()
+          ]);
+          setEntries(entriesData);
+          setFilteredEntries(entriesData);
+          setSentimentData(sentimentData);
+          setTopicData(topicsData);
+          setNerData(nerData);
+      } catch (error) { console.error("Failed to fetch data:", error); }
   };
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
+  useEffect(() => { fetchAllData(); }, []);
 
-  const handleImport = () => {
-    setImportMessage('Importing...');
-    fetch('http://localhost:8000/api/import', { method: 'POST' })
-      .then(response => response.json())
-      .then(data => {
-        setImportMessage(data.message);
-        fetchAllData(); // After importing, refresh all data
-      })
-      .catch(error => setImportMessage(`Error: ${error.message}`));
+  const handleImport = async () => {
+      setImportMessage('Importing...');
+      try {
+          const response = await fetch('http://localhost:8000/api/import', { method: 'POST' });
+          const data = await response.json();
+          setImportMessage(data.message);
+          await fetchAllData();
+      } catch (error) { const msg = error instanceof Error ? error.message : 'Unknown error'; setImportMessage(`Error: ${msg}`); }
   };
 
-  // --- Render component ---
+  // --- Interactivity ---
+  const handleEntityClick = (entityText: string) => {
+    const filtered = entries.filter(entry => entry.content.includes(entityText));
+    setFilteredEntries(filtered);
+  };
+
+  const resetFilter = () => {
+    setFilteredEntries(entries);
+  };
+
+
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Smriti: The Entire History of You</h1>
       </header>
-      <div className="card">
-        <h2>Actions</h2>
-        <button onClick={handleImport}>Import Journal Entries</button>
-        {importMessage && <p><i>{importMessage}</i></p>}
+
+      <div className="card grid-col-span-12">
+        <div className="actions-card-content">
+          <button onClick={handleImport}>Import Journal Entries</button>
+          <button onClick={resetFilter}>Reset Entry Filter</button>
+          {importMessage && <p><i>{importMessage}</i></p>}
+        </div>
       </div>
+      
+      <div className="dashboard-container">
+        <div className="card grid-col-span-12">
+          <h2>Sentiment Heatmap</h2>
+          <HeatmapDisplay sentimentData={sentimentData} />
+        </div>
 
-      <div className="card">
-        <h2>Sentiment Heatmap</h2>
-        <HeatmapDisplay sentimentData={sentimentData} />
-      </div>
+        <div className="card grid-col-span-12">
+          <NerDisplay nerData={nerData} onEntityClick={handleEntityClick} />
+        </div>
 
-      <NerDisplay nerData={nerData} />
-
-      <div className="card">
-        <h2>Sentiment Over Time</h2>
-        <SentimentChart data={sentimentData} />
-      </div>
-
-      <div className="card">
-        <h2>Discovered Topics</h2>
-        {topicData.length > 0 ? (
-          <ul> {topicData.map(topic => ( <li key={topic.topic_id}> <strong>Topic {topic.topic_id + 1}:</strong> {topic.keywords.join(', ')} </li> ))} </ul>
-        ) : ( <p><i>Not enough entries to analyze topics. (Need at least 5)</i></p> )}
-      </div>
-
-      <div className="card">
-        <h2>Connection Engine</h2>
+        <div className="card grid-col-span-6">
+          <h2>Connection Engine</h2>
           <ConnectionEngine nerData={nerData} />
-      </div>
-      <div className="card">
-        <h2>Common Connection Discovery</h2>
-          <CommonConnections nerData={nerData} />
-      </div>
+        </div>
 
-      <div className="card">
-        <h2>Entries</h2>
-        <div className="entry-list"> {entries.map(entry => ( <div key={entry.id} className="entry-item"> <h3>{entry.entry_date}</h3> <p>{entry.content.substring(0, 200)}...</p> </div> ))} </div>
+        <div className="card grid-col-span-6">
+          <h2>Common Connection Discovery</h2>
+          <CommonConnections nerData={nerData} />
+        </div>
+
+        <div className="card grid-col-span-12">
+          <h2>Sentiment Over Time</h2>
+          <SentimentChart data={sentimentData} />
+        </div>
+
+        <div className="card grid-col-span-6">
+          <h2>Discovered Topics</h2>
+          <ul className="topics-list">
+            {topicData.length > 0 ? topicData.map(topic => (
+              <li key={topic.topic_id}>
+                <strong>Topic {topic.topic_id + 1}:</strong> {topic.keywords.join(', ')}
+              </li>
+            )) : <p><i>Import entries to analyze topics.</i></p>}
+          </ul>
+        </div>
+
+        <div className="card grid-col-span-6">
+          <h2>Entries ({filteredEntries.length} of {entries.length})</h2>
+          <div className="entry-list">
+            {filteredEntries.map(entry => (
+              <div key={entry.id} className="entry-item">
+                <h3>{entry.entry_date}</h3>
+                <p>{entry.content.substring(0, 100)}...</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

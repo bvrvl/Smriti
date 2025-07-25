@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #1a1a1a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,7 +25,7 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  justify-content: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -72,3 +72,10 @@ button:focus-visible {
 .heatmap-container .react-calendar-heatmap .color-scale-2 { fill: #81c784; }
 .heatmap-container .react-calendar-heatmap .color-scale-3 { fill: #4caf50; }
 .heatmap-container .react-calendar-heatmap .color-scale-4 { fill: #2e7d32; }
+
+#root {
+  width: 100%;
+  max-width: 1400px;
+  padding: 2rem;
+  box-sizing: border-box;
+}

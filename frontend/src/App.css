@@ -1,52 +1,83 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
+/* Implementing a 2-column dashboard*/
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.dashboard-container {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr); /* A 12-column grid */
+  gap: 1.5rem;
+  padding: 1rem 0;
 }
 
 .card {
-  padding: 2em;
+  background-color: #2f2f2f;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  text-align: left;
+  /* Allow cards to handle their own scrolling */
+  overflow: hidden; 
+  display: flex;
+  flex-direction: column;
 }
 
-.read-the-docs {
-  color: #888;
+.card h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  border-bottom: 1px solid #444;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* --- Grid Item Spanning --- */
+.grid-col-span-12 { grid-column: span 12; }
+.grid-col-span-8 { grid-column: span 8; }
+.grid-col-span-6 { grid-column: span 6; }
+.grid-col-span-4 { grid-column: span 4; }
+
+/* Specific component styling */
+.actions-card-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.entry-list {
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
 .ner-container {
-  display: flex;
-  gap: 1rem;
-  width: 100%;
-  text-align: left;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  height: 100%;
 }
-.ner-container .card {
-  flex: 1;
+
+.ner-container h3 {
+    font-size: 1rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+.ner-container ul, .topics-list {
+    padding-left: 0;
+    list-style: none;
+    margin: 0;
+}
+
+.ner-container button {
+    background: none;
+    border: none;
+    color: #bdbdbd;
+    padding: 0.2rem 0;
+    text-align: left;
+    width: 100%;
+    font-size: 0.9em;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.ner-container button:hover {
+    background-color: #3f3f3f;
+    color: white;
 }
