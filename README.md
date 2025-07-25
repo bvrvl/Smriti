@@ -17,6 +17,11 @@ Smriti is a personal data analytics project — built out of a desire to explore
 It’s an ongoing experiment in self-reflection, data analysis, and pushing the limits of personal insight through software.
 
 ---
+Smriti will always be local, private, and smart in handling sensitive data.
+
+*   **Zero Persistence:** No data is ever saved to your disk by the application. The database exists only in the container's temporary memory and is **completely destroyed** when you shut down the app.
+
+*   **No Cloud:** No data is ever sent to the cloud. All processing happens locally.
 
 ### Contributing
 
