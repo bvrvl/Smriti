@@ -1,28 +1,22 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, Date
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy import create_engine, Text, Date, String
+from sqlalchemy.orm import sessionmaker, DeclarativeBase, Mapped, mapped_column
+import datetime as dt
 
-# Location of the SQLite database file
-SQLALCHEMY_DATABASE_URL = "sqlite:////tmp/journal.db" #Making db temporary
-
-
-# Create the SQLAlchemy engine
+SQLALCHEMY_DATABASE_URL = "sqlite:////tmp/journal.db"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
-
-# Create a session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class for the database models
 class Base(DeclarativeBase):
-    pass
+    type_annotation_map = {
+        dt.date: Date,
+        str: String,
+    }
 
-# Define JournalEntry model (the table in the database)
 class JournalEntry(Base):
     __tablename__ = "entries"
-
-    id = Column(Integer, primary_key=True, index=True)
-    entry_date = Column(Date, unique=True, index=True)
-    content = Column(Text)
-    tags = Column(String, nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    entry_date: Mapped[dt.date] = mapped_column(unique=True, index=True)
+    content: Mapped[str] = mapped_column(Text)
+    tags: Mapped[str | None]
