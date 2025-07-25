@@ -5,7 +5,7 @@ import { NerDisplay } from './NerDisplay';
 import { HeatmapDisplay } from './HeatmapDisplay';
 import { ConnectionEngine } from './ConnectionEngine';
 import { CommonConnections } from './CommonConnections';
-
+import {OnThisDay} from './OnThisDay'
 // --- Interfaces ---
 interface JournalEntry { id: number; entry_date: string; content: string; }
 interface SentimentDataPoint { date: string; score: number; }
@@ -89,7 +89,10 @@ function App() {
         <div className="card grid-col-span-12">
           <NerDisplay nerData={nerData} onEntityClick={handleEntityClick} />
         </div>
-
+        <div className="card grid-col-span-12">
+          <h2>On This Day in Your History</h2>
+            <OnThisDay />
+        </div>
         <div className="card grid-col-span-6">
           <h2>Connection Engine</h2>
           <ConnectionEngine nerData={nerData} />
