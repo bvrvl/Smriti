@@ -28,4 +28,4 @@ If you find a bug or have a feature request, feel free to open an issue or submi
 ### License
 
 This project is licensed under the MIT License.  
-See the [LICENSE](LICENSE) file for more details.
+See the [LICENSE](LICENSE.md) file for more details.
