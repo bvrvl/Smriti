@@ -5,7 +5,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #1a1a1a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,7 +25,7 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  justify-content: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -67,40 +67,15 @@ button:focus-visible {
   }
 }
 
-.react-grid-layout {
-  position: relative;
-  transition: height 200ms ease;
-}
-.react-grid-item {
-  transition: all 200ms ease;
-  transition-property: left, top;
-}
-.react-grid-item.cssTransforms {
-  transition-property: transform;
-}
-.react-grid-item.resizing {
-  z-index: 1;
-  will-change: width, height;
-}
-.react-grid-item.react-draggable-dragging {
-  transition: none;
-  z-index: 3;
-  will-change: transform;
-}
-.react-grid-item.react-grid-placeholder {
-  background: #646cff;
-  opacity: 0.2;
-  transition-duration: 100ms;
-  z-index: 2;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -o-user-select: none;
-  user-select: none;
-}
-
 .heatmap-container .react-calendar-heatmap .color-scale-0 { fill: #d32f2f; }
 .heatmap-container .react-calendar-heatmap .color-scale-1 { fill: #ef5350; }
 .heatmap-container .react-calendar-heatmap .color-scale-2 { fill: #81c784; }
 .heatmap-container .react-calendar-heatmap .color-scale-3 { fill: #4caf50; }
 .heatmap-container .react-calendar-heatmap .color-scale-4 { fill: #2e7d32; }
+
+#root {
+  width: 100%;
+  max-width: 1400px;
+  padding: 2rem;
+  box-sizing: border-box;
+}

@@ -21,7 +21,7 @@ function App() {
   const [topicData, setTopicData] = useState<Topic[]>([]);
   const [nerData, setNerData] = useState<NerData | null>(null);
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([]);
-
+  
   // --- Data Fetching ---
   const fetchAllData = async () => {
       try {
@@ -59,10 +59,13 @@ function App() {
     const filtered = entries.filter(entry => entry.content.includes(entityText));
     setFilteredEntries(filtered);
   };
+  // Add this function inside the App component in App.tsx
 
   const resetFilter = () => {
     setFilteredEntries(entries);
   };
+
+
 
   return (
     <div className="App">
