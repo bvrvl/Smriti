@@ -2,14 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 
 // Import all custom components and styles
 import './App.css';
-import { NerDisplay } from './NerDisplay';
-import { HeatmapDisplay } from './HeatmapDisplay';
-import { ConnectionEngine } from './ConnectionEngine';
-import { CommonConnections } from './CommonConnections';
-import { OnThisDay } from './OnThisDay';
-import { LoadingSpinner } from './LoadingSpinner';
-import { SentimentAnalysis } from './SentimentAnalysis';
-import { SearchResults } from './SearchResults';
+import { NerDisplay } from './features/ner/NerDisplay';
+import { HeatmapDisplay } from './features/heatmap/HeatmapDisplay';
+import { ConnectionEngine } from './features/connections/ConnectionEngine';
+import { CommonConnections } from './features/connections/CommonConnections';
+import { OnThisDay } from './features/onthisday/OnThisDay';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import { SentimentAnalysis } from './features/sentiment/SentimentAnalysis';
+import { SearchResults } from './components/SearchResults';
 
 // --- Type Definitions ---
 interface JournalEntry { id: number; entry_date: string; content: string; tags: string | null; }

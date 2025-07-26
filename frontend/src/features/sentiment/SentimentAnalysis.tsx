@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { SentimentChart } from './SentimentChart';
-import { CustomBarChart } from './BarChart';
-import { LoadingSpinner } from './LoadingSpinner';
+import { SentimentChart } from '../common/SentimentChart';
+import { CustomBarChart } from '../common/BarChart';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 // Define the shape of our data for different chart types
 interface SentimentDataPoint { date: string; score: number; }
