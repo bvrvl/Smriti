@@ -322,7 +322,7 @@ Keywords:"""
     response = llm.create_completion(
         prompt=prompt,
         max_tokens=60,
-        temperature=0.2, # Low temperature for focused, relevant keywords.
+        temperature=0.3, # Low temperature for focused, relevant keywords.
         stop=[",", "\n"] # Stop early for efficiency.
     )
     return response['choices'][0]['text'].strip()
@@ -380,7 +380,8 @@ First, write a "Chain of Thought" section where you analyze the memories to find
 Second, based *only* on your Chain of Thought, write the "Final Answer."
 - The answer must be in the first person ('I', 'me', 'my').
 - Speak naturally and reflectively.
-- **DO NOT** mention the "Chain of Thought" or the journal entries in your final answer.
+- **DO NOT** mention the "Chain of Thought" in your final answer.
+- Subtly mention things from your memories when relevant.
 - If the analysis concluded that no answer exists, the final answer must be a humble and natural admission, like "I've searched through my memories, but I can't seem to recall the specifics of that."
 
 Begin.
@@ -393,7 +394,7 @@ Begin.
         prompt=final_prompt,
         max_tokens=700,
         stop=["<end_of_turn>", "<start_of_turn>"],
-        temperature=0.3, # Low temperature for precise instruction-following.
+        temperature=0.6,
     )
     full_response_text = response['choices'][0]['text']
 
