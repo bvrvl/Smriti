@@ -1,10 +1,26 @@
+# =============================================================================
+# Core Application & API Framework
+# =============================================================================
 fastapi
 uvicorn[standard]
 sqlalchemy
+
+# =============================================================================
+# Natural Language Processing (NLP) Libraries
+# =============================================================================
+
+# Pinned to 3.8.1 to resolve a breaking change in the 'punkt' tokenizer
+# model in newer versions.
 nltk==3.8.1
+
 spacy
+sentence-transformers
 gensim
+# =============================================================================
+# Dependency Version Pinning for Compatibility
+# =============================================================================
+# Numpy is pinned to a pre-2.0 version for maximum compatibility with
+# the rest of the scientific Python ecosystem.
+numpy==1.26.4
 scikit-learn==1.7.1
 scipy==1.11.4
-sentence-transformers
-numpy

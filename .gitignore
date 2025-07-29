@@ -38,3 +38,8 @@ yarn-error.log*
 
 # Ignore local NLP model data
 /backend/nltk_data/
+
+#development scrap files
+en.txt
+copyen.txt
+combined.txt

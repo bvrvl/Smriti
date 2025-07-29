@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 
-// Import all custom components and styles
 import './App.css';
 import { NerDisplay } from './features/ner/NerDisplay';
 import { HeatmapDisplay } from './features/heatmap/HeatmapDisplay';
@@ -10,6 +9,7 @@ import { OnThisDay } from './features/onthisday/OnThisDay';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { SentimentAnalysis } from './features/sentiment/SentimentAnalysis';
 import { SearchResults } from './components/SearchResults';
+import { GenerativeQA } from './features/qa/GenerativeQA';
 
 // --- Type Definitions ---
 interface JournalEntry { id: number; entry_date: string; content: string; tags: string | null; }
@@ -90,7 +90,6 @@ function App() {
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
           }
-          // Now that embedding is done, we move to the 'analyzing' state by fetching all data.
           fetchAllData();
         }
       });
@@ -197,7 +196,10 @@ function App() {
             <h2>On This Day in Your History</h2>
             {appStatus !== 'ready' ? <LoadingSpinner /> : <OnThisDay entries={onThisDayData} />}
           </div>
-
+          <div className="card grid-col-span-12">
+            <h2>Ask Your Journal Anything</h2>
+              <GenerativeQA />
+          </div>
           <div className="card grid-col-span-12">
             <h2>Sentiment Heatmap</h2>
             {appStatus !== 'ready' ? <LoadingSpinner /> : <HeatmapDisplay sentimentData={sentimentData} />}

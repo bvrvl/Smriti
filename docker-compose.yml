@@ -1,15 +1,25 @@
 services:
+  # The backend service, responsible for all AI/ML logic and data processing.
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        # Passes the HF_TOKEN from a local .env file securely into the build process
+        # without exposing it in the final image. This is essential for downloading models.
+        - HF_TOKEN
     ports:
       - "8000:8000"
     volumes:
+      # Mounts the backend code into the container for live development changes.
       - ./backend:/app
-      - ./data:/data 
+      # Mounts the local data directory for importing journal entries.
+      - ./data:/data
 
+  # The frontend service, responsible for the user interface.
   frontend:
     build: ./frontend
     ports:
       - "5173:5173"
     volumes:
+      # Mounts the frontend code for live development changes.
       - ./frontend:/app
