@@ -87,7 +87,7 @@ docker-compose up --build
 ---
 
 ## Roadmap & Future Vision
-Smriti being developed with an ambitious goal: to provide the deepest possible personal insight. Here are some of the next-generation features being explored:
+Smriti is being developed with an ambitious goal: to provide the deepest possible personal insight. Here are some of the next-generation features being explored:
 
 
 - Uncovering Internal Contradictions: Automatically identify and highlight moments of cognitive dissonance or conflicting thoughts across your entire journal history. This could help illuminate areas for personal growth by showing where your thoughts or feelings have been at odds over time.
@@ -114,6 +114,9 @@ This project relies on the work of the open-source community.
 ## Contributing
 
 Contributions, ideas, and feedback are always welcome. If you find a bug or have a feature request, feel free to open an issue or submit a pull request.
+
+> *Led and developed by [@bvrvl](https://github.com/bvrvl) as part of [**Kritim Labs**](https://github.com/kritim-labs), an independent creative technology studio.*
+
 
 ## License
 
