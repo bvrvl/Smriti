@@ -115,6 +115,11 @@ This project relies on the work of the open-source community.
 
 Contributions, ideas, and feedback are always welcome. If you find a bug or have a feature request, feel free to open an issue or submit a pull request.
 
+Join Our Discord Community
+
+[![Join our Discord](https://img.shields.io/badge/Discord-Join%20Chat-7289DA?logo=discord&logoColor=white&style=flat)](https://discord.gg/khSjjmBDTp)
+
+
 > *Led and developed by [@bvrvl](https://github.com/bvrvl) as part of [**Kritim Labs**](https://github.com/kritim-labs), an independent creative technology studio.*
 
 
