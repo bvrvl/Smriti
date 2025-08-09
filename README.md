@@ -1,42 +1,70 @@
 # Smriti: The Entire History of You
 
-*An intimate, local-first, and privacy-focused intelligence tool to visualize and explore the entire history of your personal journal entries.*
+*An intimate, local-first, and privacy-focused intelligence tool to visualize, explore, and talk to the entire history of your personal journal entries.*
+
+## Blog / Demo / My story behind building Smriti / More visualizations: [https://bvrvl.com/](https://bvrvl.com/posts/smriti.html)
+
+I have been journaling since I was 10, and a few years ago, I digitized everything. This created an archive of over 500 entries from August 2021 to July 2025.
+
+I was struck by two episodes of Black Mirror: "The Entire History of You" (a perfect memory archive) and "Be Right Back" (a digital resurrection).
+>I realized I had accidentally created the source material for both.
+
+So, I decided to build it. I named it Smriti — Sanskrit for memory.
+
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 [![Status: WIP](https://img.shields.io/badge/status-work_in_progress-orange.svg)](https://github.com/bvrvl/Smriti)
 
 ---
 
-### **Current Status**
-
-**⚠️Smriti is in active early development.**
-  
-The codebase is evolving rapidly. **Features may break, change, or disappear**. This is not yet ready for general use—but you're welcome to explore or contribute.
+### **⚠️ Active Early Development**
+The codebase is evolving rapidly. **Features may break, change, or disappear.** This is not yet ready for general use—but you're welcome to explore or contribute.
 
 ---
 
-Smriti is a personal data analytics project born from a desire to explore, analyze, and visualize over 500 digital journal entries written between August 2021 and July 2025. It’s an ongoing experiment in self-reflection and pushing the limits of personal insight through software.
-
-Smriti's stance on privacy is simple: **your data is yours.** Smriti will always be local, private, and smart in its handling of your most sensitive information.
+Smriti's stance on privacy is simple: **your data is yours.** It will always be local, private, and smart in its handling of your most sensitive information.
 
 -   **Local First:** All models, data, and processing happen on your machine. Nothing is ever sent to the cloud.
--   **Zero Persistence:** The application database exists only in temporary memory while the app is running. It is **completely destroyed** when you shut it down, ensuring your journal data is never permanently stored by the app.
+-   **Zero Persistence:** The application database exists only in temporary memory while the app is running. It is **completely destroyed** when you shut it down.
+
+---
+
+## Visualizing a Life
+
+Here are some feature screenshots:
+
+### A GitHub Chart for Feelings
+Red are rough days; Green are better ones.
+
+<img src="./assets/heatmap.png" width="600">
+
+### Sentiment Fluctuation
+I grouped entries by weekday, hour, and month to find out *when* I was feeling a certain way.
+
+<img src="./assets/sentiment_by_day.png" width="600">
+
+
+
+<img src="./assets/sentiment_by_hour.png" width="600">
+
+## The Ghost
+
+### **Generative Q&A: Ask Your Journal Anything**
+Smriti runs a language model (Google's Gemma 3) locally. When you ask it a question, the system performs a semantic search to find the most relevant journal entries, then feeds them to the LLM as context. It's instructed to answer based *only* on the memories provided.
+
+**Me:** *What do you fear the most?*
+
+<img src="./assets/digital_ghost_qna.png" width="600">
 
 ---
 
 ## Core Features
 
-Smriti transforms your journal from a static archive into a dynamic, interactive digital twin of your own history.
-
--   **Generative Q&A ("Ask Your Journal Anything"):** Engage in a conversation with your digital self. Ask complex, open-ended questions like *"What have I learned about friendship over the years?"* and receive a natural, synthesized answer grounded in your own writing. *Note: Generating an answer can take a couple of minutes on typical hardware, but the detailed, reflective response is worth the wait!*
-
--   **Semantic Search ("Search by Feeling, Not Keyword"):** Go beyond simple keyword matching. Find entries based on the underlying meaning or feeling. Search for *"times I felt hopeful about the future"* and get truly relevant results.
-
--   **Connection Engine:** Discover the hidden relationships between the people, places, and organizations in your life. A Venn diagram visualization reveals how often entities are mentioned together, helping you uncover patterns you never knew existed.
-
--   **Sentiment Analysis:** Track your emotional landscape over time. A yearly heatmap provides a bird's-eye view of your mood, while interactive charts break down your average sentiment by month, day of the week, or even hour of the day.
-
--   **Automated Topic & Entity Discovery:** Smriti automatically reads all your entries and identifies recurring topics, as well as the key `People`, `Places`, and `Organizations` that populate your world.
+-   **Generative Q&A:** Engage in a conversation with your digital self using a locally-run LLM.
+-   **Semantic Search:** Find entries based on underlying meaning or feeling, not just keywords.
+-   **Connection Engine:** Discover hidden relationships between people, places, and organizations with a Venn diagram visualization.
+-   **Sentiment Analysis:** Track your emotional landscape over time with heatmaps and interactive charts.
+-   **Automated Topic & Entity Discovery:** Automatically identify recurring topics and key `People`, `Places`, and `Organizations`.
 
 ---
 

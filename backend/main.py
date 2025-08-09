@@ -133,7 +133,6 @@ def run_embedding_generation(db: Session):
 async def import_entries(request: Request):
     """Parses text/markdown files from the /data volume, creates journal entries,
     and kicks off the background embedding process."""
-    # This function remains unchanged.
     db, executor, loop = request.app.state.db, request.app.state.executor, asyncio.get_running_loop()
     imported_count, skipped_count = 0, 0
     all_parsed_entries = []
@@ -392,7 +391,7 @@ Begin.
 
     response = llm.create_completion(
         prompt=final_prompt,
-        max_tokens=700,
+        max_tokens=1500,
         stop=["<end_of_turn>", "<start_of_turn>"],
         temperature=0.6,
     )
