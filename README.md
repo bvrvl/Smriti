@@ -82,9 +82,18 @@ Smriti is built with a modern, local-first AI stack.
 
 ## Getting Started
 
-**Prerequisites:** You must have **Docker** and **Docker-Compose** installed on your system.
+**Prerequisites:** You must have **Git**, **Docker** and **Docker-Compose** installed on your system.
 
-### 1. Set Up Your Hugging Face Token
+### 1. Clone the Repository
+
+First, clone this repository to your local machine and navigate into the project directory:
+
+```bash
+git clone https://github.com/bvrvl/Smriti.git
+cd Smriti
+```
+
+### 2. Set Up Your Hugging Face Token
 
 To download the language model, you must have a Hugging Face account and agree to the Gemma license terms.
 
@@ -97,11 +106,11 @@ To download the language model, you must have a Hugging Face account and agree t
     ```
     *Note: Smriti downloads a pre-quantized GGUF version of the model for efficiency, but you still need to accept the license on the original model page.*
 
-### 2. Add Your Journal Data
+### 3. Add Your Journal Data
 
 Place your journal entries as `.txt` or `.md` files inside the `data/` directory. The application will attempt to parse the creation date from metadata (e.g., `Created: Month Day, Year H:M AM/PM`) or from the filename (e.g., `YYYY-MM-DD.md`).
 
-### 3. Build and Run the Application
+### 4. Build and Run the Application
 
 With Docker running, open your terminal in the project root and run:
 
