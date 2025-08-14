@@ -11,6 +11,7 @@ Thumbs.db
 
 #locattion of venv folder
 /backend/venv/
+venv/
 
 #Python cache
 __pycache__/
