@@ -1,165 +1,140 @@
 # Smriti: The Entire History of You
 
-*An intimate, local-first, and privacy-focused intelligence tool to visualize, explore, and talk to the entire history of your personal journal entries.*
-
-## Blog / Demo / My story behind building Smriti / More visualizations: [https://bvrvl.com/](https://bvrvl.com/posts/smriti.html)
-
-I have been journaling since I was 10, and a few years ago, I digitized everything. This created an archive of over 500 entries from August 2021 to July 2025.
-
-I was struck by two episodes of Black Mirror: "The Entire History of You" (a perfect memory archive) and "Be Right Back" (a digital resurrection).
->I realized I had accidentally created the source material for both.
-
-So, I decided to build it. I named it Smriti — Sanskrit for memory.
-
+*An intimate, local-first, and privacy-focused intelligence for your personal journal. Visualize, explore, and talk to your past.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 [![Status: WIP](https://img.shields.io/badge/status-work_in_progress-orange.svg)](https://github.com/bvrvl/Smriti)
+[![Join our Discord](https://img.shields.io/badge/Discord-Join%20Chat-7289DA?logo=discord&logoColor=white&style=flat)](https://discord.gg/khSjjmBDTp)
+
+### [Read the Blog Post & My Story Behind Smriti](https://bvrvl.com/posts/smriti.html)
+
+I have been journaling since I was 10. A few years ago, I digitized everything, creating an archive of over 500 entries spanning my life. I was struck by two episodes of Black Mirror: "The Entire History of You" (a memory archive) and "Be Right Back" (a digital resurrection). I realized I had accidentally created the source material for both.
+
+So, I decided to build it. I named it **Smriti**—Sanskrit for memory.
 
 ---
 
-### **⚠️ Active Early Development**
-The codebase is evolving rapidly. **Features may break, change, or disappear.** This is not yet ready for general use—but you're welcome to explore or contribute.
+### ⚠️ Active Early Development
+This project is evolving rapidly. **Features may break, change, or disappear.** It is not yet ready for general use, but you are welcome to explore and contribute.
 
 ---
 
-Smriti's stance on privacy is simple: **your data is yours.** It will always be local, private, and smart in its handling of your most sensitive information.
+## Your Data, Your Machine. Period.
+Smriti's stance on privacy is simple: **your data is yours.** It is designed from the ground up to be a completely private, local-first application.
 
--   **Local First:** All models, data, and processing happen on your machine. Nothing is ever sent to the cloud.
--   **Zero Persistence:** The application database exists only in temporary memory while the app is running. It is **completely destroyed** when you shut it down.
+- **100% Local First:** All models, data, and processing happen on your machine. Nothing is ever sent to the cloud.
+- **Zero Persistence:** The application database exists only in temporary memory while the app is running. It is **completely destroyed** when you shut it down, leaving no trace.
 
 ---
 
-## Visualizing a Life
+## See Smriti in Action
 
-Here are some feature screenshots:
-
-### A GitHub Chart for Feelings
-Red are rough days; Green are better ones.
-
+### A GitHub Contribution Chart for Your Feelings
+Visualize your emotional history. Red days were rough; green days were better.
 <img src="./assets/heatmap.png" width="600">
 
-### Sentiment Fluctuation
-I grouped entries by weekday, hour, and month to find out *when* I was feeling a certain way.
+### Talk to Your Past Self
+Smriti runs a language model locally to answer questions based *only* on the context from your journal. It's like having a conversation with a digital ghost of who you were.
+**Me:** *What do you fear the most?*
+<img src="./assets/digital_ghost_qna.png" width="600">
 
+### Uncover Emotional Patterns
+Discover *when* you felt a certain way by grouping entries by weekday, hour, or month.
 <img src="./assets/sentiment_by_day.png" width="600">
-
-
 
 <img src="./assets/sentiment_by_hour.png" width="600">
 
-## The Ghost
-
-### **Generative Q&A: Ask Your Journal Anything**
-Smriti runs a language model (Google's Gemma 3) locally. When you ask it a question, the system performs a semantic search to find the most relevant journal entries, then feeds them to the LLM as context. It's instructed to answer based *only* on the memories provided.
-
-**Me:** *What do you fear the most?*
-
-<img src="./assets/digital_ghost_qna.png" width="600">
-
 ---
 
-## Core Features
+## Key Features
 
--   **Generative Q&A:** Engage in a conversation with your digital self using a locally-run LLM.
--   **Semantic Search:** Find entries based on underlying meaning or feeling, not just keywords.
--   **Connection Engine:** Discover hidden relationships between people, places, and organizations with a Venn diagram visualization.
--   **Sentiment Analysis:** Track your emotional landscape over time with heatmaps and interactive charts.
--   **Automated Topic & Entity Discovery:** Automatically identify recurring topics and key `People`, `Places`, and `Organizations`.
-
----
-
-## Tech Stack
-
-Smriti is built with a modern, local-first AI stack.
-
--   **Backend:** **FastAPI** (Python) with **SQLAlchemy**.
--   **Frontend:** **React** (TypeScript) with **Vite**.
--   **Containerization:** **Docker** and **Docker-Compose** for a one-command setup.
--   **LLM Engine:** **`llama-cpp-python`** running a quantized version of **Google's Gemma 3 4B-IT** model locally.
--   **NLP & Vector Embeddings:** **Sentence-Transformers**, **spaCy**, **NLTK**, and **Gensim**.
+-   💬 **Generative Q&A:** Ask your journal anything and get answers based on your own words.
+-   🔍 **Semantic Search:** Find memories by meaning and feeling, not just keywords.
+-   📊 **Emotional Landscape:** Visualize your sentiment over time with interactive heatmaps and charts.
+-   🔗 **Connection Engine:** Discover hidden relationships between people, places, and ideas.
+-   🏷️ **Automated Insights:** Automatically discover recurring topics and named entities (`People`, `Places`, `Organizations`).
 
 ---
 
 ## Getting Started
 
-**Prerequisites:** You must have **Git**, **Docker** and **Docker-Compose** installed on your system.
+**Prerequisites:** You must have **Git**, **Docker**, and **Docker-Compose** installed. For the demo, you'll also need **Python 3**.
 
 ### 1. Clone the Repository
-
-First, clone this repository to your local machine and navigate into the project directory:
-
 ```bash
 git clone https://github.com/bvrvl/Smriti.git
 cd Smriti
 ```
 
 ### 2. Set Up Your Hugging Face Token
+To download the language model, you must agree to Google's Gemma license terms.
 
-To download the language model, you must have a Hugging Face account and agree to the Gemma license terms.
-
-1.  Visit the [original Gemma 3 4B IT model page](https://huggingface.co/google/gemma-3-4b-it).
-2.  Accept the Terms and Conditions to get access. You only need to do this once.
-3.  Generate a Hugging Face Access Token. A token with `Read` permissions is sufficient.
-4.  In the root of this project, create a file named `.env` and add your token:
+1.  Visit the [Gemma 3 4B IT model page](https://huggingface.co/google/gemma-3-4b-it) and accept the terms.
+2.  Generate a Hugging Face Access Token with `Read` permissions.
+3.  Create a file named `.env` in the project root and add your token:
     ```env
     HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
     ```
-    *Note: Smriti downloads a pre-quantized GGUF version of the model for efficiency, but you still need to accept the license on the original model page.*
 
-### 3. Add Your Journal Data
+### 3. Prepare Your Journal Data
 
-Place your journal entries as `.txt` or `.md` files inside the `data/` directory. The application will attempt to parse the creation date from metadata (e.g., `Created: Month Day, Year H:M AM/PM`) or from the filename (e.g., `YYYY-MM-DD.md`).
+You have two options: use the demo diary or add your own entries.
+
+#### **Option A: Run the Demo with Anne Frank's Diary**
+
+This repository includes pre-processed entries from *The Diary of a Young Girl* for a powerful demonstration. To use them, create a `data` directory and copy the demo files into it.
+
+From your terminal in the project root, run:
+```bash
+# Create the data directory
+mkdir data
+
+# Copy the demo entries into it
+cp -r anne_frank_diary_entries/* data/
+```
+This will create a `data/` directory filled with the formatted diary entries, ready for Smriti to analyze.
+
+#### **Option B: Use Your Own Journal**
+Place your journal entries as `.txt` or `.md` files inside a `data/` directory in the project root. Smriti will parse the creation date from metadata (e.g., `Created: August 11, 2024 7:11 AM`) or the filename (e.g., `2024-08-11.md`).
 
 ### 4. Build and Run the Application
-
-With Docker running, open your terminal in the project root and run:
-
+With Docker running, execute the following command from the project root:
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
-
-- The first build will take a significant amount of time as it needs to download the ~3GB language model and build the C++ extensions for it. Subsequent builds will be much faster.
-- Once the build is complete, you can access the Smriti frontend at http://localhost:5173.
-
----
-
-## Roadmap & Future Vision
-Smriti is being developed with an ambitious goal: to provide the deepest possible personal insight. Here are some of the next-generation features being explored:
-
-
-- Uncovering Internal Contradictions: Automatically identify and highlight moments of cognitive dissonance or conflicting thoughts across your entire journal history. This could help illuminate areas for personal growth by showing where your thoughts or feelings have been at odds over time.
-
-- Mapping Core Beliefs & Values: Move beyond analyzing what you wrote to understanding why you wrote it. This feature aims to identify persistent, underlying belief systems and value patterns that implicitly guide your actions and reflections, even if never stated directly.
-
-
-These features represent complex and exciting challenges in applied NLP. If you're interested in tackling them, your contributions are welcome!
+-   **Note:** The first build will take a while as it downloads the ~3GB language model. Subsequent builds are much faster.
+-   Once complete, access the Smriti frontend at **[http://localhost:5173](http://localhost:5173)**.
 
 ---
 
-## Important Note on Gemma 3 Support & Credits
+## Tech Stack
+-   **Backend:** **FastAPI** (Python) with **SQLAlchemy**
+-   **Frontend:** **React** (TypeScript) with **Vite**
+-   **Containerization:** **Docker** and **Docker-Compose**
+-   **LLM Engine:** **`llama-cpp-python`** running **Google's Gemma 3 4B-IT** (GGUF)
+-   **NLP & Embeddings:** **Sentence-Transformers**, **spaCy**, **NLTK**, **Gensim**
 
-This project relies on the work of the open-source community.
+---
 
-- Gemma 3 Model: This project uses a quantized GGUF version of Gemma 3 provided by [@bartowski](https://huggingface.co/bartowski) on Hugging Face. This makes it possible to run the model efficiently on consumer hardware.
+## Roadmap: The Future of Smriti
+The vision is to provide the deepest possible personal insight. Features being explored include:
 
-- LLM Backend: As of July 2025, official support for Gemma 3 has not been merged into the main llama-cpp-python library. This project uses an experimental fork from GitHub user [@kossum](https://github.com/kossum) to enable Gemma 3 functionality.
+-   **Uncovering Internal Contradictions:** Automatically identify moments of cognitive dissonance across your journal history to illuminate areas for personal growth.
+-   **Mapping Core Beliefs & Values:** Move beyond *what* you wrote to understand *why* you wrote it by identifying the persistent, underlying belief systems that guide your reflections.
 
-- The backend/Dockerfile is configured to pull these specific dependencies. This means the project's core Q&A feature is dependent on this community-provided code and may change as official support is released.
+If you're an engineer or researcher excited by these challenges, your contributions are welcome!
+
+---
+
+## Technical Notes & Credits
+-   **Gemma 3 Model:** This project uses a quantized GGUF version of Gemma 3 provided by [@bartowski](https://huggingface.co/bartowski) on Hugging Face, enabling it to run on consumer hardware.
+-   **LLM Backend:** As of July 2025, Gemma 3 support is not yet in the main `llama-cpp-python` library. This project relies on an experimental fork from GitHub user [@kossum](https://github.com/kossum). The backend `Dockerfile` is configured to use these specific community dependencies.
 
 ---
 
 ## Contributing
-
-Contributions, ideas, and feedback are always welcome. If you find a bug or have a feature request, feel free to open an issue or submit a pull request.
-
-Join Our Discord Community
-
-[![Join our Discord](https://img.shields.io/badge/Discord-Join%20Chat-7289DA?logo=discord&logoColor=white&style=flat)](https://discord.gg/khSjjmBDTp)
-
-
+Contributions, ideas, and feedback are welcome. Please open an issue or submit a pull request.
 > *Led and developed by [@bvrvl](https://github.com/bvrvl) as part of [**Kritim Labs**](https://github.com/kritim-labs), an independent creative technology studio.*
 
-
 ## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE.md) file for more details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE.md) file for details.
